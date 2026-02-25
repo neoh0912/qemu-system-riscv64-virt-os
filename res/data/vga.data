@@ -1,0 +1,3 @@
+vga_mmio_ptr: .zero 8
+vga_frame_buffer_ptr: .zero 8
+vga_buffer: .zero 8

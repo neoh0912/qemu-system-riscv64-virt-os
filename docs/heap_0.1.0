@@ -1,0 +1,38 @@
+#HEAP_list
+1 is used
+1 is start
+6 size in blocks
+
+
+#memory
+
+heap_list: (4*HEAP_LIST_SIZE)
+
+heap: (HEAP_SIZE)
+
+
+#alloc
+1 recallculate free section size
+2 move free section start
+3 move free section end
+4 create allocated section
+5 return phys pointer
+
+((ptr-heap_list)/4)*blk+heap
+
+#Free
+1 callculate heap_list pointer from heap pointer
+1.5 check if pointer is allocated
+2 flip used bit to 0
+3 if next section is free then
+3.1 run heap_merge_free
+4 if prev. section is free then
+4.1 run heap_merge_free with prev. section's index
+
+((ptr-heap)/blk)*4+heap_list
+
+#heap_merge_free
+1 remove end of caller
+1.1 and start of next
+2 store added size to start
+2.1 and end

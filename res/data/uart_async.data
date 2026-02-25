@@ -1,0 +1,3 @@
+uart_a_queue_head: .zero 8
+uart_a_queue_tail: .zero 8
+uart_a_queue_start: .zero 8
