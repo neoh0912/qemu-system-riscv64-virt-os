@@ -1,2 +1,0 @@
-pci_mmio_ptr: .zero 8
-pci_devices: .zero 8

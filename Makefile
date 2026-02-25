@@ -2,9 +2,17 @@ TCPREFIX = riscv64-unknown-elf-
 ISA = rv64im_zicsr_zbb
 ABI = lp64
 
-bin: main.s linkers/main.ld
-	$(TCPREFIX)as -march=$(ISA) -mabi=$(ABI) -almsg=main.lst --warn -o main.o main.s
-	$(TCPREFIX)ld -T linkers/main.ld -m elf64lriscv main.o -o bin
+VPATH = src:res
+BUILD_DIR = build
+
+.PHONY: all clean
+
+all: $(BUILD_DIR)/bin
+
+$(BUILD_DIR)/bin: main.s main.ld
+	mkdir -p $(BUILD_DIR)
+	$(TCPREFIX)as -march=$(ISA) -mabi=$(ABI) -Isrc -Ires -almsg=$(BUILD_DIR)/main.lst --warn -o $(BUILD_DIR)/main.o $<
+	$(TCPREFIX)ld -T $(filter %.ld,$^) -m elf64lriscv $(BUILD_DIR)/main.o -o $@
 
 clean:
-	rm bin main.o
+	rm -rf $(BUILD_DIR)

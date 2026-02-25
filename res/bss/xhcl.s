@@ -1,0 +1,11 @@
+xhcl_regs: .space 8
+xhcl_opr_regs: .space 8
+xhcl_run_regs: .space 8
+xhcl_max_slots: .space 1
+xhcl_dcbaa: .space 8
+xhcl_crcr_malloc_address: .space 8
+xhcl_crcr: .space 8
+xhcl_event_ring_malloc_address: .space 8
+xhcl_event_ring: .space 8
+xhcl_erst_malloc_address: .space 8
+xhcl_erst: .space 8

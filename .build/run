@@ -1,9 +1,9 @@
 #!/usr/bin/bash
 qemu-system-riscv64 \
--bios bin \
+-bios build/bin \
 -M virt \
 -m 512M \
--object memory-backend-file,id=mb1,size=64M,share=on,mem-path=ivshmem.img \
+-object memory-backend-file,id=mb1,size=64M,share=on,mem-path=res/ivshmem.img \
 -device ivshmem-plain,memdev=mb1 \
 -device bochs-display \
 -device virtio-keyboard-pci,bus=pcie.0,addr=05.0

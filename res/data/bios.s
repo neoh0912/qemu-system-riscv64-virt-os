@@ -1,0 +1,5 @@
+bios_store_str: .string "Store byte to disk:\n\r"
+bios_load_str: .string "Read from disk:\n\r"
+bios_addr_str: .string "Address=0x"
+bios_len_str:  .string "length="
+bios_del_char: .string "\x08 \x08"

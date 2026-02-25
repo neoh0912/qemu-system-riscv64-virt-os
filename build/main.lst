@@ -1,0 +1,3764 @@
+GAS LISTING src/main.s 			page 1
+
+
+ GNU assembler version 2.45 (riscv64-unknown-elf)
+	 using BFD version (GNU Binutils) 2.45.
+ options passed	: -march=rv64im_zicsr_zbb -mabi=lp64 -Isrc -Ires -almsg=build/main.lst --warn 
+ input file    	: src/main.s
+ output file   	: build/main.o
+ target        	: riscv64-unknown-elf
+ time stamp    	: 2026-02-25T10:34:36.000+0100
+
+GAS LISTING src/main.s 			page 2
+
+
+   1              	.global _start
+   2              	
+   3              	#[ci    [CONSTANTS]
+   4              	.equ UART_ADDRESS,              0x10000000
+   5              	.equ LINE_STATUS_REGISTER,      0x5
+   6              	.equ LINE_CONTROL_REGISTER,     0x3
+   7              	.equ FIFO_CONTROL_REGISTER,     0x2
+   8              	.equ INTERRUPT_ENABLE_REGISTER, 0x1
+   9              	.equ LINE_STATUS_DATA_READY,    0x1
+  10              	.equ HEAP_LIST_SIZE, 0x400000
+  11              	.equ HEAP_BLOCK_SIZE, 64
+  12              	.equ HEAP_SIZE, HEAP_LIST_SIZE*HEAP_BLOCK_SIZE
+  13              	
+  14              	#[gi    [macros]
+  15              	.include "macros.s"
+   1              	.macro salloc n
+   2              	        sd   ra,  -8(sp)
+   3              	        sd   fp, -16(sp)
+   4              	        mv   fp, sp
+   5              	        addi sp, sp, (-16 -\n)
+   6              	.endm
+   7              	.macro sfree n
+   8              	        ld   ra,  -8(fp)
+   9              	        ld   fp, -16(fp)
+  10              	        addi sp, sp, (\n+16)
+  11              	.endm
+  12              	.macro save_all
+  13              	    sd x2,-240(sp)
+  14              	    addi sp,sp,-248
+  15              	    sd x1,(sp)
+  16              	    sd x3,16(sp)
+  17              	    sd x4,24(sp)
+  18              	    sd x5,32(sp)
+  19              	    sd x6,40(sp)
+  20              	    sd x7,48(sp)
+  21              	    sd x8,56(sp)
+  22              	    sd x9,64(sp)
+  23              	    sd x10,72(sp)
+  24              	    sd x11,80(sp)
+  25              	    sd x12,88(sp)
+  26              	    sd x13,96(sp)
+  27              	    sd x14,104(sp)
+  28              	    sd x15,112(sp)
+  29              	    sd x16,120(sp)
+  30              	    sd x17,128(sp)
+  31              	    sd x18,136(sp)
+  32              	    sd x19,144(sp)
+  33              	    sd x20,152(sp)
+  34              	    sd x21,160(sp)
+  35              	    sd x22,168(sp)
+  36              	    sd x23,176(sp)
+  37              	    sd x24,184(sp)
+  38              	    sd x25,192(sp)
+  39              	    sd x26,200(sp)
+  40              	    sd x27,208(sp)
+  41              	    sd x28,216(sp)
+  42              	    sd x29,224(sp)
+GAS LISTING src/main.s 			page 3
+
+
+  43              	    sd x30,232(sp)
+  44              	    sd x31,240(sp)
+  45              	.endm
+  46              	.macro load_all
+  47              	    ld x1,(sp)
+  48              	    ld x3,16(sp)
+  49              	    ld x4,24(sp)
+  50              	    ld x5,32(sp)
+  51              	    ld x6,40(sp)
+  52              	    ld x7,48(sp)
+  53              	    ld x8,56(sp)
+  54              	    ld x9,64(sp)
+  55              	    ld x10,72(sp)
+  56              	    ld x11,80(sp)
+  57              	    ld x12,88(sp)
+  58              	    ld x13,96(sp)
+  59              	    ld x14,104(sp)
+  60              	    ld x15,112(sp)
+  61              	    ld x16,120(sp)
+  62              	    ld x17,128(sp)
+  63              	    ld x18,136(sp)
+  64              	    ld x19,144(sp)
+  65              	    ld x20,152(sp)
+  66              	    ld x21,160(sp)
+  67              	    ld x22,168(sp)
+  68              	    ld x23,176(sp)
+  69              	    ld x24,184(sp)
+  70              	    ld x25,192(sp)
+  71              	    ld x26,200(sp)
+  72              	    ld x27,208(sp)
+  73              	    ld x28,216(sp)
+  74              	    ld x29,224(sp)
+  75              	    ld x30,232(sp)
+  76              	    ld x31,240(sp)
+  77              	    ld x2,8(sp)
+  78              	.endm
+  16              	.include "debug.s"
+   1              	.macro db char
+   2              	    addi sp,sp,-16
+   3              	    sd a0,(sp)
+   4              	    sd t0,8(sp)
+   5              	    li a0,\char
+   6              	    call uart_putc
+   7              	    ld t0,8(sp)
+   8              	    ld a0,(sp)
+   9              	    addi sp,sp, 16
+  10              	.endm
+  17              	
+  18              	#[yi    [data]
+  19              	        .section .data
+  20 0000 4E454F48 	str: .string "NEOH"
+  20      00
+  21 0005 30313233 	hex: .ascii "0123456789abcdef"
+  21      34353637 
+  21      38396162 
+  21      63646566 
+  22 0015 30313233 	HEX: .ascii "0123456789ABCDEF"
+GAS LISTING src/main.s 			page 4
+
+
+  22      34353637 
+  22      38394142 
+  22      43444546 
+  23              	.include "data/bios.s"
+   1 0025 53746F72 	bios_store_str: .string "Store byte to disk:\n\r"
+   1      65206279 
+   1      74652074 
+   1      6F206469 
+   1      736B3A0A 
+   2 003b 52656164 	bios_load_str: .string "Read from disk:\n\r"
+   2      2066726F 
+   2      6D206469 
+   2      736B3A0A 
+   2      0D00
+   3 004d 41646472 	bios_addr_str: .string "Address=0x"
+   3      6573733D 
+   3      307800
+   4 0058 6C656E67 	bios_len_str:  .string "length="
+   4      74683D00 
+   5 0060 08200800 	bios_del_char: .string "\x08 \x08"
+  24              	.include "data/ivshmem.s"
+   1 0064 69767368 	ivshmem_device_not_found_error_Message: .string "ivshmem_init: device_not_found"
+   1      6D656D5F 
+   1      696E6974 
+   1      3A206465 
+   1      76696365 
+   2 0083 69767368 	ivshmem_address_out_of_bounds_error_Message: .string "ivshmem: device address out of bounds. Addres
+   2      6D656D3A 
+   2      20646576 
+   2      69636520 
+   2      61646472 
+  25              	.include "data/machine.s"
+   1 00d6 1B5B376D 	machine_fault_register_str: .string "\x1b[7mREGISTERS:\x1b[0m\n\r"
+   1      52454749 
+   1      53544552 
+   1      533A1B5B 
+   1      306D0A0D 
+   2 00eb 25730925 	machine_fault_register_fstr: .string "%s\t%11X, %11u\n\r"
+   2      3131582C 
+   2      20253131 
+   2      750A0D00 
+   3 00fb 1B5B376D 	machine_fault_mepc_fstr: .string "\x1b[7mLOCATION:\x1b[0m\n\r%X\n\r\n\r"
+   3      4C4F4341 
+   3      54494F4E 
+   3      3A1B5B30 
+   3      6D0A0D25 
+   4              	
+   5 0115 1B5B376D 	machine_fault_cause_str: .string "\x1b[7mCAUSE:\x1b[0m\n\r"
+   5      43415553 
+   5      453A1B5B 
+   5      306D0A0D 
+   5      00
+   6              	
+   7 0126 496E7374 	machine_fault_E1_str:   .string "Instruction access fault\n\r"
+   7      72756374 
+   7      696F6E20 
+   7      61636365 
+GAS LISTING src/main.s 			page 5
+
+
+   7      73732066 
+   8 0141 20202049 	machine_fault_E2_str:   .string "   Illegal instruction\n\r"
+   8      6C6C6567 
+   8      616C2069 
+   8      6E737472 
+   8      75637469 
+   9 015a 42726561 	machine_fault_E3_str:   .string "Breakpoint\n\r"
+   9      6B706F69 
+   9      6E740A0D 
+   9      00
+  10 0167 4C6F6164 	machine_fault_E5_str:   .string "Load access fault\n\r"
+  10      20616363 
+  10      65737320 
+  10      6661756C 
+  10      740A0D00 
+  11 017b 53746F72 	machine_fault_E7_str:   .string "Store/AMO access fault\n\r"
+  11      652F414D 
+  11      4F206163 
+  11      63657373 
+  11      20666175 
+  12 0194 456E7669 	machine_fault_E8_str:   .string "Environment call from U-Mode (ECALL)\n\r"
+  12      726F6E6D 
+  12      656E7420 
+  12      63616C6C 
+  12      2066726F 
+  13 01bb 456E7669 	machine_fault_E11_str:  .string "Environment call from M-Mode (ECALL)\n\r"
+  13      726F6E6D 
+  13      656E7420 
+  13      63616C6C 
+  13      2066726F 
+  14 01e2 496E7374 	machine_fault_E24_str:  .string "Instruction bus fault\n\r"
+  14      72756374 
+  14      696F6E20 
+  14      62757320 
+  14      6661756C 
+  15 01fa 496E7374 	machine_fault_E25_str:  .string "Instruction parity/checksum fault\n\r"
+  15      72756374 
+  15      696F6E20 
+  15      70617269 
+  15      74792F63 
+  16              	
+  17 021e 55617274 	machine_fault_uart_interupt_str: .string "Uart Interupt"
+  17      20496E74 
+  17      65727570 
+  17      7400
+  18              	
+  19 022c 1B5B376D 	machine_fault_heap_str: .string "\x1b[7mHEAP:\x1b[0m\n\r"
+  19      48454150 
+  19      3A1B5B30 
+  19      6D0A0D00 
+  20 023c 25733A20 	machine_heap_fstr: .string "%s: &%x, %8u blocks, %9x bytes]\x1b[0m\n\r"
+  20      2625782C 
+  20      20253875 
+  20      20626C6F 
+  20      636B732C 
+  21 0262 5B436875 	machine_heap_alloc_str: .string "[Chunk"
+  21      6E6B00
+GAS LISTING src/main.s 			page 6
+
+
+  22 0269 1B5B373B 	machine_heap_free_str: .string "\x1b[7;32m[Free Chunk"
+  22      33326D5B 
+  22      46726565 
+  22      20436875 
+  22      6E6B00
+  23              	
+  24 027c 1B5B376D 	machine_fault_stack_str: .string "\x1b[7mSTACK:\x1b[0m\n\r"
+  24      53544143 
+  24      4B3A1B5B 
+  24      306D0A0D 
+  24      00
+  25 028d 25303478 	machine_stack_val_fstr: .string "%04x:\t %10x\n\r"
+  25      3A092025 
+  25      3130780A 
+  25      0D00
+  26              	
+  27              	machine_regs:
+  28 029b 5B72615D 	.string "[ra]:  "
+  28      3A202000 
+  29 02a3 5B73705D 	.string "[sp]:  "
+  29      3A202000 
+  30 02ab 5B67705D 	.string "[gp]:  "
+  30      3A202000 
+  31 02b3 5B74705D 	.string "[tp]:  "
+  31      3A202000 
+  32 02bb 5B74305D 	.string "[t0]:  "
+  32      3A202000 
+  33 02c3 5B74315D 	.string "[t1]:  "
+  33      3A202000 
+  34 02cb 5B74325D 	.string "[t2]:  "
+  34      3A202000 
+  35 02d3 5B66705D 	.string "[fp]:  "
+  35      3A202000 
+  36 02db 5B73315D 	.string "[s1]:  "
+  36      3A202000 
+  37 02e3 5B61305D 	.string "[a0]:  "
+  37      3A202000 
+  38 02eb 5B61315D 	.string "[a1]:  "
+  38      3A202000 
+  39 02f3 5B61325D 	.string "[a2]:  "
+  39      3A202000 
+  40 02fb 5B61335D 	.string "[a3]:  "
+  40      3A202000 
+  41 0303 5B61345D 	.string "[a4]:  "
+  41      3A202000 
+  42 030b 5B61355D 	.string "[a5]:  "
+  42      3A202000 
+  43 0313 5B61365D 	.string "[a6]:  "
+  43      3A202000 
+  44 031b 5B61375D 	.string "[a7]:  "
+  44      3A202000 
+  45 0323 5B73325D 	.string "[s2]:  "
+  45      3A202000 
+  46 032b 5B73335D 	.string "[s3]:  "
+  46      3A202000 
+  47 0333 5B73345D 	.string "[s4]:  "
+  47      3A202000 
+GAS LISTING src/main.s 			page 7
+
+
+  48 033b 5B73355D 	.string "[s5]:  "
+  48      3A202000 
+  49 0343 5B73365D 	.string "[s6]:  "
+  49      3A202000 
+  50 034b 5B73375D 	.string "[s7]:  "
+  50      3A202000 
+  51 0353 5B73385D 	.string "[s8]:  "
+  51      3A202000 
+  52 035b 5B73395D 	.string "[s9]:  "
+  52      3A202000 
+  53 0363 5B733130 	.string "[s10]: "
+  53      5D3A2000 
+  54 036b 5B733131 	.string "[s11]: "
+  54      5D3A2000 
+  55 0373 5B74335D 	.string "[t3]:  "
+  55      3A202000 
+  56 037b 5B74345D 	.string "[t4]:  "
+  56      3A202000 
+  57 0383 5B74355D 	.string "[t5]:  "
+  57      3A202000 
+  58 038b 5B74365D 	.string "[t6]:  "
+  58      3A202000 
+  26              	
+  27              	#[yi    [ BSS ]
+  28              	        .section .bss
+  29              	        .align 16
+  30              	.include "bss/heap.s"
+   1 0000 00000000 	heap_list: .space HEAP_LIST_SIZE*4
+   1      00000000 
+   1      00000000 
+   1      00000000 
+   1      00000000 
+   2 1000000 00000000 	heap: .space HEAP_SIZE
+   2      00000000 
+   2      00000000 
+   2      00000000 
+   2      00000000 
+  31              	.include "bss/stack.s"
+   1 11000000 00000000 	stack: .space 65536
+   1      00000000 
+   1      00000000 
+   1      00000000 
+   1      00000000 
+   2              	stack_pointer:
+   3 11010000 00000000 	buffer: .space 512
+   3      00000000 
+   3      00000000 
+   3      00000000 
+   3      00000000 
+  32              	.include "bss/vga.s"
+   1 11010200 00000000 	vga_mmio_ptr: .space 8
+   1      00000000 
+   2 11010208 00000000 	vga_frame_buffer_ptr: .space 8
+   2      00000000 
+   3 11010210 00000000 	vga_buffer: .space 8
+   3      00000000 
+  33              	.include "bss/pci.s"
+GAS LISTING src/main.s 			page 8
+
+
+   1 11010218 00000000 	pci_mmio_ptr: .space 8
+   1      00000000 
+  34              	.include "bss/uart.s"
+   1 11010220 00000000 	uart_queue_head: .space 8
+   1      00000000 
+   2 11010228 00000000 	uart_queue_tail: .space 8
+   2      00000000 
+   3 11010230 00000000 	uart_queue_start: .space 8
+   3      00000000 
+  35              	.include "bss/ivshmem.s"
+   1 11010238 00000000 	ivshmem_size: .space 8
+   1      00000000 
+   2 11010240 00000000 	ivshmem_ptr: .space 8
+   2      00000000 
+  36              	.include "bss/bios.s"
+   1 11010248 00000000 	bios_input_buffer: .space 512
+   1      00000000 
+   1      00000000 
+   1      00000000 
+   1      00000000 
+  37              	
+  38              	#[mi    [Program]
+  39              	        .section .text.start
+  40              	.include "start.s"
+   1              	.global _start
+   2              	_start:
+   3              	
+   4 0000 17010000 	    la sp, stack_pointer
+   4      13010100 
+   5              	
+   6 0008 97020000 	    la t0,_bss_start
+   6      93820200 
+   7 0010 17030000 	    la t1,_bss_end
+   7      13030300 
+   8 0018 63D86200 	    bge t0,t1,2f
+   9 001c 23A00200 	1:  sw zero,(t0)
+  10 0020 93824200 	    addi t0,t0,0x4
+  11 0024 E3CC62FE 	    blt t0,t1,1b
+  12              	2:
+  13              	
+  14              	    
+  15 0028 97000000 	    call machine_init
+  15      E7800000 
+  16 0030 97000000 	    call heap_init
+  16      E7800000 
+  17 0038 97000000 	    call uart_init
+  17      E7800000 
+  18 0040 97000000 	    call pci_init
+  18      E7800000 
+  19              	#    call ivshmem_init
+  20 0048 97000000 	    call vga_init
+  20      E7800000 
+  21              	#    call xhcl_init
+  22              	
+  23              	    .equ VIO_PCI_INPUT_ID, 0x10521af4
+  24 0050 37255210 	    li a0,VIO_PCI_INPUT_ID
+  24      1B0545AF 
+GAS LISTING src/main.s 			page 9
+
+
+  25 0058 97000000 	    call pci_scan
+  25      E7800000 
+  26 0060 97000000 	    call virtio_pci_keyboard_init
+  26      E7800000 
+  27              	    
+  28              	
+  29              	loop:
+  30 0068 73005010 	    wfi
+  31 006c 6FF0DFFF 	j loop
+  32              	
+  41              	        .section .text.drivers
+  42              	.include "drivers/pci.s"
+   1              	#[ci    [DEFINES]
+   2              	.equ    PCI_ECAM,    0x30000000
+   3              	.equ    PCI_MMIO_32, 0x40000000
+   4              	.equ    PCI_MMIO_64, 0x4000000000
+   5              	
+   6              	#[mi    [CODE]
+   7              	
+   8              	pci_allocate_bar_to_mmio_region:
+   9              	#[ci [ a0 = address, a1 = bar ]
+  10              	        salloc 16
+  10 0000 233C11FE 	>  sd ra,-8(sp)
+  10 0004 233881FE 	>  sd fp,-16(sp)
+  10 0008 13040100 	>  mv fp,sp
+  10 000c 130101FE 	>  addi sp,sp,(-16-16)
+  11 0010 2330A100 	        sd a0,(sp)
+  12 0014 2334B100 	        sd a1,0x8(sp)
+  13              	
+  14 0018 93020501 	        addi t0,a0,0x10
+  15 001c 13932500 	        slli t1,a1,0x2
+  16 0020 B3826200 	        add t0,t0,t1
+  17              	
+  18 0024 03E30200 	        lwu t1,(t0)
+  19 0028 93736300 	        andi t2,t1,0x6
+  20              	
+  21 002c 63860300 	        beqz t2,1f
+  22              	
+  23 0030 13834200 	        addi t1,t0,0x4
+  24 0034 23200300 	        sw zero,(t1)
+  25              	
+  26 0038 1B031000 	1:      li t1,0xFFFFFFFF
+  26      13130302 
+  26      1303F3FF 
+  27 0044 23A06200 	        sw t1,(t0)
+  28 0048 0F00C00C 	        fence io,io
+  29 004c 0F003003 	        fence rw,rw
+  30 0050 03E30200 	        lwu t1,(t0)
+  31 0054 9303F000 	        li t2,0xF
+  32 0058 33737340 	        andn t1,t1,t2
+  33 005c 13131360 	        ctz t1,t1
+  34 0060 93031000 	        li t2,0x1
+  35 0064 33936300 	        sll t1,t2,t1
+  36 0068 97030000 	        la t2,pci_mmio_ptr
+  36      93830300 
+  37 0070 03BE0300 	        ld t3,(t2)
+  38              	
+GAS LISTING src/main.s 			page 10
+
+
+  39 0074 930EF3FF 	        addi t4,t1,-1
+  40 0078 330EDE01 	        add t3,t3,t4
+  41 007c 337EDE41 	        andn t3,t3,t4
+  42              	
+  43 0080 13050E00 	        mv a0,t3
+  44              	
+  45 0084 23B0C201 	        sd t3,(t0)
+  46 0088 330E6E00 	        add t3,t3,t1
+  47 008c 23B0C301 	        sd t3,(t2)
+  48 0090 0F00C00C 	        fence io,io
+  49              	
+  50 0094 03330100 	        ld t1,(sp)
+  51 0098 93024300 	        addi t0,t1,0x4
+  52 009c 03E30200 	        lwu t1,(t0)
+  53 00a0 13632300 	        ori t1,t1,0x2
+  54 00a4 23A06200 	        sw t1,(t0)
+  55 00a8 0F00C00C 	        fence io,io
+  56              	       
+  57              	        sfree 16
+  57 00ac 833084FF 	>  ld ra,-8(fp)
+  57 00b0 033404FF 	>  ld fp,-16(fp)
+  57 00b4 13010102 	>  addi sp,sp,(16+16)
+  58 00b8 67800000 	        ret
+  59              	
+  60              	pci_init:
+  61 00bc 97020000 	        la t0,pci_mmio_ptr
+  61      93820200 
+  62 00c4 37030040 	        li t1,PCI_MMIO_32
+  63 00c8 23B06200 	        sd t1,(t0)
+  64 00cc 67800000 	        ret
+  65              	
+  66              	pci_get_bar_address:
+  67              	#[ci [ a0 = address, a1 = bar ]
+  68              	        salloc 0
+  68 00d0 233C11FE 	>  sd ra,-8(sp)
+  68 00d4 233881FE 	>  sd fp,-16(sp)
+  68 00d8 13040100 	>  mv fp,sp
+  68 00dc 130101FF 	>  addi sp,sp,(-16-0)
+  69              	
+  70 00e0 93020501 	        addi t0,a0,0x10
+  71 00e4 13932500 	        slli t1,a1,0x2
+  72 00e8 B3826200 	        add t0,t0,t1
+  73              	
+  74 00ec 03E50200 	        lwu a0,(t0)
+  75 00f0 9302F000 	        li t0,0xF
+  76 00f4 33755540 	        andn a0,a0,t0
+  77              	
+  78              	        sfree 0
+  78 00f8 833084FF 	>  ld ra,-8(fp)
+  78 00fc 033404FF 	>  ld fp,-16(fp)
+  78 0100 13010101 	>  addi sp,sp,(0+16)
+  79 0104 67800000 	        ret
+  80              	
+  81              	pci_scan:
+  82              	#[ci    [ a0 = packed ids ]
+  83              	        salloc 32
+  83 0108 233C11FE 	>  sd ra,-8(sp)
+GAS LISTING src/main.s 			page 11
+
+
+  83 010c 233881FE 	>  sd fp,-16(sp)
+  83 0110 13040100 	>  mv fp,sp
+  83 0114 130101FD 	>  addi sp,sp,(-16-32)
+  84 0118 23309100 	        sd s1, 0(sp)
+  85 011c 23342101 	        sd s2, 8(sp)
+  86 0120 23383101 	        sd s3,16(sp)
+  87              	
+  88 0124 93090500 	        mv s3,a0
+  89              	
+  90 0128 93040000 	        li s1,0x0
+  91 012c 13090000 	1:      li s2,0x0
+  92              	
+  93 0130 13850400 	2:      mv a0,s1                #[gi[Prep function arguments for read config]
+  94 0134 93050900 	        mv a1,s2
+  95 0138 13060000 	        li a2,0x0
+  96 013c 93060000 	        li a3,0x0
+  97 0140 97000000 	        call pci_config
+  97      E7800000 
+  98 0148 83620500 	        lwu t0,(a0)
+  99 014c 638E3201 	        beq t0,s3,1f
+ 100              	
+ 101 0150 13091900 	        addi s2,s2, 0x1
+ 102 0154 93020002 	        li t0,32
+ 103 0158 E34C59FC 	        blt s2,t0,2b
+ 104              	
+ 105 015c 93841400 	        addi s1,s1, 0x1         #[gi[Branch if bus < 255]
+ 106 0160 9302F00F 	        li t0,255
+ 107 0164 E3C454FC 	        blt s1,t0,1b
+ 108              	        
+ 109 0168 83398101 	1:      ld s3,24(sp)
+ 110 016c 83340100 	        ld s1, 0(sp)
+ 111 0170 03398100 	        ld s2, 8(sp)
+ 112              	        sfree 32
+ 112 0174 833084FF 	>  ld ra,-8(fp)
+ 112 0178 033404FF 	>  ld fp,-16(fp)
+ 112 017c 13010103 	>  addi sp,sp,(32+16)
+ 113 0180 67800000 	        ret
+ 114              	
+ 115              	pci_config:
+ 116              	#[ci    [ a0 = bus, a1 = slot, a2 = func, a3 = offset ]
+ 117 0184 B7130000 	        li t2,0xFFC
+ 117      9B83C3FF 
+ 118 018c B7020030 	        li t0, PCI_ECAM
+ 119 0190 13134501 	        slli t1,a0,20
+ 120 0194 B3E26200 	        or t0,t0,t1
+ 121 0198 1393F500 	        slli t1,a1,15
+ 122 019c B3E26200 	        or t0,t0,t1
+ 123 01a0 1313C600 	        slli t1,a2,12
+ 124 01a4 B3E26200 	        or t0,t0,t1
+ 125 01a8 33F37600 	        and t1,a3,t2
+ 126 01ac 33E56200 	        or a0,t0,t1 
+ 127 01b0 67800000 	        ret
+  43              	.include "drivers/ivshmem.s"
+   1              	#[ci    [DEFINES]
+   2              	
+   3              	#ivshmem_init:
+   4              	#        salloc 16
+GAS LISTING src/main.s 			page 12
+
+
+   5              	#
+   6              	#                                    #[gi[ Prep for pci_scan call ]
+   7              	#        li a0,0x11101AF4
+   8              	#        call pci_scan
+   9              	#        sd a0,(sp)
+  10              	#        sd a1,8(sp)
+  11              	#        li t1,0x1AF4
+  12              	#        xor t0,a0,t1
+  13              	#        bnez t0,1f
+  14              	#        li a0,E_ERROR
+  15              	#        la a1,ivshmem_device_not_found_error_Message
+  16              	#        ecall
+  17              	#        
+  18              	#1:      li a2,0x0
+  19              	#        li a3,0x18
+  20              	#        call pci_config
+  21              	#        li t0,0xFFFFFFFF
+  22              	#        sw t0,(a0)
+  23              	#        fence rw,rw
+  24              	#        lwu t0,(a0)
+  25              	#        srli t0,t0,4
+  26              	#        slli t0,t0,4
+  27              	#        ctz t0,t0
+  28              	#        li t5,0x1
+  29              	#        sll a0,t5,t0                   #[gi[ calculate size ]
+  30              	#        la t0,ivshmem_size
+  31              	#        sd a0,(t0)
+  32              	#
+  33              	#        la t0,ivshmem_ptr
+  34              	#        la t1,pci_mmio_ptr
+  35              	#        ld t2,(t1)
+  36              	#        sd t2,(t0)
+  37              	#        mv a4,t2
+  38              	#        add t2,t2,a0
+  39              	#        sd t2,(t1)
+  40              	#        ld a0,(sp)
+  41              	#        ld a1,8(sp)
+  42              	#        li a2,0x0
+  43              	#        li a3,0x18
+  44              	#        call pci_write_config
+  45              	#        li a4,0x0
+  46              	#        li a3,0x1c
+  47              	#        call pci_write_config
+  48              	#        fence i,o
+  49              	#        
+  50              	#        li a3,0x04
+  51              	#        call pci_read_config
+  52              	#        ori a4,a0,0x2
+  53              	#        ld a0,(sp)
+  54              	#        call pci_write_config
+  55              	#
+  56              	#        sfree 16
+  57              	#        ret
+  58              	
+  59              	ivshmem_address_out_of_bounds_error:
+  60              	        salloc 16
+  60 01b4 233C11FE 	>  sd ra,-8(sp)
+GAS LISTING src/main.s 			page 13
+
+
+  60 01b8 233881FE 	>  sd fp,-16(sp)
+  60 01bc 13040100 	>  mv fp,sp
+  60 01c0 130101FE 	>  addi sp,sp,(-16-16)
+  61 01c4 97020000 	        la t0,ivshmem_size
+  61      93820200 
+  62 01cc 83B20200 	        ld t0,(t0)
+  63 01d0 9382F2FF 	        addi t0,t0,-0x1
+  64 01d4 23305100 	        sd t0,(sp)
+  65 01d8 23347100 	        sd t2,8(sp)
+  66              	
+  67 01dc 73001000 	        ebreak
+  68              	
+  69              	        sfree 16
+  69 01e0 833084FF 	>  ld ra,-8(fp)
+  69 01e4 033404FF 	>  ld fp,-16(fp)
+  69 01e8 13010102 	>  addi sp,sp,(16+16)
+  70 01ec 67800000 	        ret
+  71              	
+  72              	
+  73              	#[ri    [   8B   ]
+  74              	ivshmem_sd:
+  75              	#[ci [a0 = local address, a1 = source, a2, len]
+  76 01f0 97020000 	        la t0,ivshmem_ptr
+  76      93820200 
+  77 01f8 83B20200 	        ld t0,(t0)
+  78 01fc 938E0200 	        mv t4,t0
+  79 0200 B382A200 	        add t0,t0,a0
+  80 0204 13830500 	        addi t1,a1,0x0
+  81 0208 93133600 	        slli t2,a2,0x3
+  82 020c B3837200 	        add t2,t0,t2
+  83 0210 970E0000 	        la t4,ivshmem_size
+  83      938E0E00 
+  84 0218 83BE0E00 	        ld t4,(t4)
+  85 021c 330EDE01 	        add t3,t3,t4
+  86 0220 63C8C301 	        blt t2,t3,1f
+  87 0224 97000000 	        call ivshmem_address_out_of_bounds_error
+  87      E7800000 
+  88 022c 6F004001 	        j 2f
+  89 0230 833E0300 	1:      ld t4,(t1)
+  90 0234 23B0D201 	        sd t4,(t0)
+  91 0238 13038300 	        addi t1,t1,0x8
+  92 023c 93828200 	        addi t0,t0,0x8
+  93 0240 E3C872FE 	2:      blt t0,t2,1b
+  94 0244 67800000 	        ret
+  95              	
+  96              	ivshmem_ld:
+  97              	#[ci [a0 = local address, a1 = dest, a2, len]
+  98 0248 97020000 	        la t0,ivshmem_ptr
+  98      93820200 
+  99 0250 83B20200 	        ld t0,(t0)
+ 100 0254 138E0200 	        mv t3,t0
+ 101 0258 B382A200 	        add t0,t0,a0
+ 102 025c 13830500 	        addi t1,a1,0x0
+ 103 0260 93133600 	        slli t2,a2,0x3
+ 104 0264 B3837200 	        add t2,t0,t2
+ 105 0268 970E0000 	        la t4,ivshmem_size
+ 105      938E0E00 
+GAS LISTING src/main.s 			page 14
+
+
+ 106 0270 83BE0E00 	        ld t4,(t4)
+ 107 0274 330EDE01 	        add t3,t3,t4
+ 108 0278 63C8C301 	        blt t2,t3,1f
+ 109 027c 97000000 	        call ivshmem_address_out_of_bounds_error
+ 109      E7800000 
+ 110 0284 6F004001 	        j 2f
+ 111 0288 83BE0200 	1:      ld t4,(t0)
+ 112 028c 2330D301 	        sd t4,(t1)
+ 113 0290 13038300 	        addi t1,t1,0x8
+ 114 0294 93828200 	        addi t0,t0,0x8
+ 115 0298 E3C872FE 	2:      blt t0,t2,1b
+ 116 029c 67800000 	        ret
+ 117              	
+ 118              	#[ri    [   4B   ]
+ 119              	ivshmem_sw:
+ 120              	#[ci [a0 = local address, a1 = source, a2, len]
+ 121 02a0 97020000 	        la t0,ivshmem_ptr
+ 121      93820200 
+ 122 02a8 83B20200 	        ld t0,(t0)
+ 123 02ac 138E0200 	        mv t3,t0
+ 124 02b0 B382A200 	        add t0,t0,a0
+ 125 02b4 13830500 	        addi t1,a1,0x0
+ 126 02b8 93132600 	        slli t2,a2,0x2
+ 127 02bc B3837200 	        add t2,t0,t2
+ 128 02c0 970E0000 	        la t4,ivshmem_size
+ 128      938E0E00 
+ 129 02c8 83BE0E00 	        ld t4,(t4)
+ 130 02cc 330EDE01 	        add t3,t3,t4
+ 131 02d0 63C8C301 	        blt t2,t3,1f
+ 132 02d4 97000000 	        call ivshmem_address_out_of_bounds_error
+ 132      E7800000 
+ 133 02dc 6F004001 	        j 2f
+ 134 02e0 836E0300 	1:      lwu t4,(t1)
+ 135 02e4 23A0D201 	        sw t4,(t0)
+ 136 02e8 13034300 	        addi t1,t1,0x4
+ 137 02ec 93824200 	        addi t0,t0,0x4
+ 138 02f0 E3C872FE 	2:      blt t0,t2,1b
+ 139 02f4 67800000 	        ret
+ 140              	ivshmem_lwu:
+ 141              	#[ci [a0 = local address, a1 = dest, a2, len]
+ 142 02f8 97020000 	        la t0,ivshmem_ptr
+ 142      93820200 
+ 143 0300 83B20200 	        ld t0,(t0)
+ 144 0304 138E0200 	        mv t3,t0
+ 145 0308 B382A200 	        add t0,t0,a0
+ 146 030c 13830500 	        addi t1,a1,0x0
+ 147 0310 93132600 	        slli t2,a2,0x2
+ 148 0314 B3837200 	        add t2,t0,t2
+ 149 0318 970E0000 	        la t4,ivshmem_size
+ 149      938E0E00 
+ 150 0320 83BE0E00 	        ld t4,(t4)
+ 151 0324 330EDE01 	        add t3,t3,t4
+ 152 0328 63C8C301 	        blt t2,t3,1f
+ 153 032c 97000000 	        call ivshmem_address_out_of_bounds_error
+ 153      E7800000 
+ 154 0334 6F004001 	        j 2f
+ 155 0338 83EE0200 	1:      lwu t4,(t0)
+GAS LISTING src/main.s 			page 15
+
+
+ 156 033c 2320D301 	        sw t4,(t1)
+ 157 0340 13034300 	        addi t1,t1,0x4
+ 158 0344 93824200 	        addi t0,t0,0x4
+ 159 0348 E3C872FE 	2:      blt t0,t2,1b
+ 160 034c 67800000 	        ret
+ 161              	
+ 162              	#[ri    [   2B   ]
+ 163              	ivshmem_sh:
+ 164              	#[ci [a0 = local address, a1 = source, a2, len]
+ 165 0350 97020000 	        la t0,ivshmem_ptr
+ 165      93820200 
+ 166 0358 83B20200 	        ld t0,(t0)
+ 167 035c 138E0200 	        mv t3,t0
+ 168 0360 B382A200 	        add t0,t0,a0
+ 169 0364 13830500 	        addi t1,a1,0x0
+ 170 0368 93131600 	        slli t2,a2,0x1
+ 171 036c B3837200 	        add t2,t0,t2
+ 172 0370 970E0000 	        la t4,ivshmem_size
+ 172      938E0E00 
+ 173 0378 83BE0E00 	        ld t4,(t4)
+ 174 037c 330EDE01 	        add t3,t3,t4
+ 175 0380 63C8C301 	        blt t2,t3,1f
+ 176 0384 97000000 	        call ivshmem_address_out_of_bounds_error
+ 176      E7800000 
+ 177 038c 6F004001 	        j 2f
+ 178 0390 835E0300 	1:      lhu t4,(t1)
+ 179 0394 2390D201 	        sh t4,(t0)
+ 180 0398 13032300 	        addi t1,t1,0x2
+ 181 039c 93822200 	        addi t0,t0,0x2
+ 182 03a0 E3C872FE 	2:      blt t0,t2,1b
+ 183 03a4 67800000 	        ret
+ 184              	ivshmem_lhu:
+ 185              	#[ci [a0 = local address, a1 = dest, a2, len]
+ 186 03a8 97020000 	        la t0,ivshmem_ptr
+ 186      93820200 
+ 187 03b0 83B20200 	        ld t0,(t0)
+ 188 03b4 138E0200 	        mv t3,t0
+ 189 03b8 B382A200 	        add t0,t0,a0
+ 190 03bc 13830500 	        addi t1,a1,0x0
+ 191 03c0 93131600 	        slli t2,a2,0x1
+ 192 03c4 B3837200 	        add t2,t0,t2
+ 193 03c8 970E0000 	        la t4,ivshmem_size
+ 193      938E0E00 
+ 194 03d0 83BE0E00 	        ld t4,(t4)
+ 195 03d4 330EDE01 	        add t3,t3,t4
+ 196 03d8 63C8C301 	        blt t2,t3,1f
+ 197 03dc 97000000 	        call ivshmem_address_out_of_bounds_error
+ 197      E7800000 
+ 198 03e4 6F004001 	        j 2f
+ 199 03e8 83DE0200 	1:      lhu t4,(t0)
+ 200 03ec 2310D301 	        sh t4,(t1)
+ 201 03f0 13032300 	        addi t1,t1,0x2
+ 202 03f4 93822200 	        addi t0,t0,0x2
+ 203 03f8 E3C872FE 	2:      blt t0,t2,1b
+ 204 03fc 67800000 	        ret
+ 205              	
+ 206              	#[ri    [   1B   ]
+GAS LISTING src/main.s 			page 16
+
+
+ 207              	ivshmem_sb:
+ 208              	#[ci [a0 = local address, a1 = source, a2, len]
+ 209 0400 97020000 	        la t0,ivshmem_ptr
+ 209      93820200 
+ 210 0408 83B20200 	        ld t0,(t0)
+ 211 040c 138E0200 	        mv t3,t0
+ 212 0410 B382A200 	        add t0,t0,a0
+ 213 0414 13830500 	        addi t1,a1,0x0
+ 214 0418 B383C200 	        add t2,t0,a2
+ 215 041c 970E0000 	        la t4,ivshmem_size
+ 215      938E0E00 
+ 216 0424 83BE0E00 	        ld t4,(t4)
+ 217 0428 330EDE01 	        add t3,t3,t4
+ 218 042c 63587E00 	        ble t2,t3,1f
+ 219 0430 97000000 	        call ivshmem_address_out_of_bounds_error
+ 219      E7800000 
+ 220 0438 6F004001 	        j 2f
+ 221 043c 834E0300 	1:      lbu t4,(t1)
+ 222 0440 2380D201 	        sb t4,(t0)
+ 223 0444 13031300 	        addi t1,t1,0x1
+ 224 0448 93821200 	        addi t0,t0,0x1
+ 225 044c E3C872FE 	2:      blt t0,t2,1b
+ 226 0450 67800000 	        ret
+ 227              	ivshmem_lbu:
+ 228              	#[ci [a0 = local address, a1 = dest, a2, len]
+ 229 0454 97020000 	        la t0,ivshmem_ptr
+ 229      93820200 
+ 230 045c 83B20200 	        ld t0,(t0)
+ 231 0460 138E0200 	        mv t3,t0
+ 232 0464 B382A200 	        add t0,t0,a0
+ 233 0468 13830500 	        addi t1,a1,0x0
+ 234 046c B383C200 	        add t2,t0,a2
+ 235 0470 970E0000 	        la t4,ivshmem_size
+ 235      938E0E00 
+ 236 0478 83BE0E00 	        ld t4,(t4)
+ 237 047c 330EDE01 	        add t3,t3,t4
+ 238 0480 63587E00 	        ble t2,t3,1f
+ 239 0484 97000000 	        call ivshmem_address_out_of_bounds_error
+ 239      E7800000 
+ 240 048c 6F004001 	        j 2f
+ 241 0490 83CE0200 	1:      lbu t4,(t0)
+ 242 0494 2300D301 	        sb t4,(t1)
+ 243 0498 13031300 	        addi t1,t1,0x1
+ 244 049c 93821200 	        addi t0,t0,0x1
+ 245 04a0 E3C872FE 	2:      blt t0,t2,1b
+ 246 04a4 67800000 	        ret
+ 247              	
+  44              	.include "drivers/PLIC.s"
+   1              	.equ PLIC_BASE,      0x0c000000
+   2              	
+   3              	plic_enable:
+   4              	#[ci [ a0 = id ]
+   5              	        salloc 0
+   5 04a8 233C11FE 	>  sd ra,-8(sp)
+   5 04ac 233881FE 	>  sd fp,-16(sp)
+   5 04b0 13040100 	>  mv fp,sp
+   5 04b4 130101FF 	>  addi sp,sp,(-16-0)
+GAS LISTING src/main.s 			page 17
+
+
+   6              	
+   7 04b8 B702000C 	        li t0, PLIC_BASE
+   8              	
+   9 04bc 37230000 	        li t1, 0x2000
+  10 04c0 33035300 	        add t1,t1,t0
+  11 04c4 93535500 	        srli t2,a0,0x5
+  12 04c8 93932300 	        slli t2,t2,0x2
+  13 04cc 33037300 	        add t1,t1,t2
+  14 04d0 83230300 	        lw t2,(t1)
+  15 04d4 930F0002 	        li t6,0x20
+  16 04d8 B372F503 	        remu t0,a0,t6
+  17 04dc 130E1000 	        li t3, 1
+  18 04e0 331E5E00 	        sll t3,t3,t0
+  19 04e4 B3E3C301 	        or t2,t2,t3
+  20 04e8 23207300 	        sw t2,(t1)
+  21              	
+  22              	        sfree 0
+  22 04ec 833084FF 	>  ld ra,-8(fp)
+  22 04f0 033404FF 	>  ld fp,-16(fp)
+  22 04f4 13010101 	>  addi sp,sp,(0+16)
+  23 04f8 67800000 	        ret
+  24              	
+  25              	plic_set_prio:
+  26              	#[ci [ a0 = id, a1 = prio ]
+  27              	        salloc 0
+  27 04fc 233C11FE 	>  sd ra,-8(sp)
+  27 0500 233881FE 	>  sd fp,-16(sp)
+  27 0504 13040100 	>  mv fp,sp
+  27 0508 130101FF 	>  addi sp,sp,(-16-0)
+  28              	
+  29 050c B702000C 	        li t0, PLIC_BASE
+  30 0510 13132500 	        slli t1,a0,0x2
+  31 0514 B3826200 	        add t0,t0,t1
+  32 0518 23A0B200 	        sw a1, (t0)
+  33              	
+  34              	        sfree 0
+  34 051c 833084FF 	>  ld ra,-8(fp)
+  34 0520 033404FF 	>  ld fp,-16(fp)
+  34 0524 13010101 	>  addi sp,sp,(0+16)
+  35 0528 67800000 	        ret
+  36              	
+  37              	plic_set_prio_thres:
+  38              	#[ci [ a0 = context, a1 = val ]
+  39              	        salloc 0
+  39 052c 233C11FE 	>  sd ra,-8(sp)
+  39 0530 233881FE 	>  sd fp,-16(sp)
+  39 0534 13040100 	>  mv fp,sp
+  39 0538 130101FF 	>  addi sp,sp,(-16-0)
+  40              	
+  41 053c B702000C 	        li t0, PLIC_BASE
+  42 0540 37032000 	        li t1, 0x200000
+  43 0544 33035300 	        add t1, t1, t0
+  44 0548 B7120000 	        li t0,4096
+  45 054c B382A202 	        mul t0,t0,a0
+  46 0550 33035300 	        add t1,t1,t0
+  47 0554 2320B300 	        sw a1, 0(t1)
+  48              	
+GAS LISTING src/main.s 			page 18
+
+
+  49              	        sfree 0
+  49 0558 833084FF 	>  ld ra,-8(fp)
+  49 055c 033404FF 	>  ld fp,-16(fp)
+  49 0560 13010101 	>  addi sp,sp,(0+16)
+  50 0564 67800000 	        ret
+  51              	
+  52              	plic_get_ipb:
+  53              	        salloc 0
+  53 0568 233C11FE 	>  sd ra,-8(sp)
+  53 056c 233881FE 	>  sd fp,-16(sp)
+  53 0570 13040100 	>  mv fp,sp
+  53 0574 130101FF 	>  addi sp,sp,(-16-0)
+  54              	
+  55 0578 B702000C 	        li t0,PLIC_BASE
+  56 057c 37130000 	        li t1,0x1000
+  57 0580 B3826200 	        add t0,t0,t1
+  58 0584 03E50200 	        lwu a0,(t0)
+  59              	
+  60              	        sfree 0
+  60 0588 833084FF 	>  ld ra,-8(fp)
+  60 058c 033404FF 	>  ld fp,-16(fp)
+  60 0590 13010101 	>  addi sp,sp,(0+16)
+  61 0594 67800000 	        ret
+  62              	
+  63              	plic_claim_interrupt:
+  64              	#[ci [ a0 = context ]
+  65              	        salloc 0
+  65 0598 233C11FE 	>  sd ra,-8(sp)
+  65 059c 233881FE 	>  sd fp,-16(sp)
+  65 05a0 13040100 	>  mv fp,sp
+  65 05a4 130101FF 	>  addi sp,sp,(-16-0)
+  66              	
+  67 05a8 B702000C 	        li t0,PLIC_BASE
+  68 05ac 37032000 	        li t1,0x200004
+  68      1B034300 
+  69 05b4 B3826200 	        add t0,t0,t1
+  70 05b8 37130000 	        li t1,0x1000
+  71 05bc 3303A302 	        mul t1,t1,a0
+  72 05c0 B3826200 	        add t0,t0,t1
+  73 05c4 03E50200 	        lwu a0,(t0)
+  74              	        
+  75              	        sfree 0
+  75 05c8 833084FF 	>  ld ra,-8(fp)
+  75 05cc 033404FF 	>  ld fp,-16(fp)
+  75 05d0 13010101 	>  addi sp,sp,(0+16)
+  76 05d4 67800000 	        ret
+  77              	
+  78              	plic_complete_interrupt:
+  79              	#[ci [ a0 = context , a1 = id]
+  80              	        salloc 0
+  80 05d8 233C11FE 	>  sd ra,-8(sp)
+  80 05dc 233881FE 	>  sd fp,-16(sp)
+  80 05e0 13040100 	>  mv fp,sp
+  80 05e4 130101FF 	>  addi sp,sp,(-16-0)
+  81              	
+  82 05e8 B702000C 	        li t0,PLIC_BASE
+  83 05ec 37032000 	        li t1,0x200004
+GAS LISTING src/main.s 			page 19
+
+
+  83      1B034300 
+  84 05f4 B3826200 	        add t0,t0,t1
+  85 05f8 37130000 	        li t1,0x1000
+  86 05fc 3303A302 	        mul t1,t1,a0
+  87 0600 B3826200 	        add t0,t0,t1
+  88 0604 23A0B200 	        sw a1,(t0)
+  89              	        
+  90              	        sfree 0
+  90 0608 833084FF 	>  ld ra,-8(fp)
+  90 060c 033404FF 	>  ld fp,-16(fp)
+  90 0610 13010101 	>  addi sp,sp,(0+16)
+  91 0614 67800000 	        ret
+  92              	
+  45              	
+  46              	.include "drivers/uart/main.s"
+   1              	.equ UART_RHR, 0x0
+   2              	.equ UART_THR, 0x0
+   3              	.equ UART_IER, 0x1
+   4              	.equ UART_ISR, 0x2
+   5              	.equ UART_FCR, 0x2
+   6              	.equ UART_LCR, 0x3
+   7              	.equ UART_MCR, 0x4
+   8              	.equ UART_LSR, 0x5
+   9              	.equ UART_MSR, 0x6
+  10              	
+  11              	.equ PLIC_BASE,      0x0c000000
+  12              	.equ UART_PLIC_ID,        10
+  13              	.equ UART_QUEUE_SIZE, 32
+  14              	
+  15              	uart_init:
+  16              	        salloc 0
+  16 0618 233C11FE 	>  sd ra,-8(sp)
+  16 061c 233881FE 	>  sd fp,-16(sp)
+  16 0620 13040100 	>  mv fp,sp
+  16 0624 130101FF 	>  addi sp,sp,(-16-0)
+  17              	        #[ci [ Init Queue ]
+  18 0628 13050002 	        li a0,UART_QUEUE_SIZE
+  19 062c 97000000 	        call malloc
+  19      E7800000 
+  20 0634 97020000 	        la t0,uart_queue_start
+  20      93820200 
+  21 063c 23B0A200 	        sd a0,(t0)
+  22 0640 97020000 	        la t0,uart_queue_head
+  22      93820200 
+  23 0648 23B0A200 	        sd a0,(t0)
+  24 064c 97020000 	        la t0,uart_queue_tail
+  24      93820200 
+  25 0654 23B0A200 	        sd a0,(t0)
+  26              	
+  27              	        #[ci [ Enable interupt ]
+  28 0658 B7020010 	        li t0,  UART_ADDRESS
+  29              	        
+  30 065c 03C31200 	        lbu t1, UART_IER(t0)
+  31 0660 13631300 	        ori t1,t1,0x1
+  32 0664 A3806200 	        sb t1,  UART_IER(t0)
+  33              	
+  34 0668 13033000 	        li  t1, 0x3
+GAS LISTING src/main.s 			page 20
+
+
+  35 066c A3816200 	        sb  t1, UART_LCR(t0)
+  36              	
+  37 0670 13031000 	        li  t1, 0x1
+  38 0674 23816200 	        sb  t1, UART_FCR(t0)
+  39              	
+  40 0678 1305A000 	        li a0,UART_PLIC_ID
+  41 067c 97000000 	        call plic_enable
+  41      E7800000 
+  42 0684 93051000 	        li a1,0x1
+  43 0688 97000000 	        call plic_set_prio
+  43      E7800000 
+  44 0690 13050000 	        mv a0,zero
+  45 0694 93050000 	        mv a1,zero
+  46 0698 97000000 	        call plic_set_prio_thres
+  46      E7800000 
+  47              	        sfree 0
+  47 06a0 833084FF 	>  ld ra,-8(fp)
+  47 06a4 033404FF 	>  ld fp,-16(fp)
+  47 06a8 13010101 	>  addi sp,sp,(0+16)
+  48 06ac 67800000 	        ret
+  49              	
+  50              	uart_queue_push:
+  51 06b0 93020002 	        li t0,UART_QUEUE_SIZE
+  52 06b4 17030000 	        la t1,uart_queue_start
+  52      13030300 
+  53 06bc 83330300 	        ld t2,(t1)
+  54 06c0 338E7200 	        add t3,t0,t2
+  55 06c4 97020000 	        la t0,uart_queue_tail
+  55      93820200 
+  56 06cc 03B30200 	        ld t1,(t0)
+  57 06d0 2300A300 	        sb a0,(t1)
+  58 06d4 13031300 	        addi t1,t1,0x1
+  59 06d8 6344C301 	        blt t1,t3,1f
+  60 06dc 13830300 	        mv t1,t2
+  61 06e0 23B06200 	1:      sd t1,(t0)
+  62 06e4 67800000 	        ret
+  63              	
+  64              	uart_queue_pop:
+  65 06e8 93020002 	        li t0,UART_QUEUE_SIZE
+  66 06ec 17030000 	        la t1,uart_queue_start
+  66      13030300 
+  67 06f4 83330300 	        ld t2,(t1)
+  68 06f8 338E7200 	        add t3,t0,t2
+  69 06fc 97020000 	        la t0,uart_queue_head
+  69      93820200 
+  70 0704 03B30200 	        ld t1,(t0)
+  71 0708 03450300 	        lbu a0,(t1)
+  72 070c 13031300 	        addi t1,t1,0x1
+  73 0710 6344C301 	        blt t1,t3,1f
+  74 0714 13830300 	        mv t1,t2
+  75 0718 23B06200 	1:      sd t1,(t0)
+  76 071c 67800000 	        ret
+  77              	
+  47              	.include "drivers/uart/interrupt.s"
+   1              	uart_interrupt:
+   2              	        salloc 8
+   2 0720 233C11FE 	>  sd ra,-8(sp)
+GAS LISTING src/main.s 			page 21
+
+
+   2 0724 233881FE 	>  sd fp,-16(sp)
+   2 0728 13040100 	>  mv fp,sp
+   2 072c 130181FE 	>  addi sp,sp,(-16-8)
+   3 0730 2330A100 	        sd a0,(sp)
+   4 0734 97000000 	1:      call uart_getc
+   4      E7800000 
+   5 073c 63080500 	        beqz a0,1f
+   6 0740 97000000 	        call uart_queue_push
+   6      E7800000 
+   7 0748 6FF0DFFE 	        j 1b
+   8              	
+   9 074c 83350100 	1:      ld a1,(sp)
+  10 0750 13050000 	        li a0,0x0
+  11              	
+  12 0754 97000000 	        call plic_complete_interrupt
+  12      E7800000 
+  13              	        sfree 8
+  13 075c 833084FF 	>  ld ra,-8(fp)
+  13 0760 033404FF 	>  ld fp,-16(fp)
+  13 0764 13018101 	>  addi sp,sp,(8+16)
+  14 0768 6FF05FD3 	        j External_Interrupt_Handler_end
+  48              	.include "drivers/uart/api.s"
+   1              	uart_getc:
+   2 076c B7020010 	    li      t0, UART_ADDRESS
+   3              	
+   4 0770 03C35200 	    lbu     t1, LINE_STATUS_REGISTER(t0)
+   5 0774 13731300 	    andi    t1, t1, LINE_STATUS_DATA_READY
+   6              	
+   7 0778 63160300 	    bnez    t1, 1f
+   8              	
+   9 077c 13050000 	    mv      a0, zero
+  10 0780 6F008000 	    j       2f
+  11              	
+  12              	1:
+  13 0784 03C50200 	    lbu     a0, (t0)
+  14              	2:
+  15 0788 67800000 	    ret
+  16              	
+  17              	uart_putc:
+  18 078c B7020010 	    li  t0, UART_ADDRESS
+  19              	
+  20 0790 2380A200 	    sb  a0, (t0)
+  21 0794 67800000 	    ret
+  22              	
+  23              	uart_get:
+  24              	        salloc 0
+  24 0798 233C11FE 	>  sd ra,-8(sp)
+  24 079c 233881FE 	>  sd fp,-16(sp)
+  24 07a0 13040100 	>  mv fp,sp
+  24 07a4 130101FF 	>  addi sp,sp,(-16-0)
+  25 07a8 97020000 	1:      la t0,uart_queue_head
+  25      93820200 
+  26 07b0 03B30200 	        ld t1,(t0)
+  27 07b4 97030000 	        la t2,uart_queue_tail
+  27      93830300 
+  28 07bc 83B30300 	        ld t2,(t2)
+  29 07c0 63167300 	        bne t1,t2,1f
+GAS LISTING src/main.s 			page 22
+
+
+  30              	
+  31 07c4 73005010 	        wfi
+  32              	
+  33 07c8 6FF01FFE 	        j 1b
+  34 07cc 97000000 	1:      call uart_queue_pop
+  34      E7800000 
+  35              	        sfree 0
+  35 07d4 833084FF 	>  ld ra,-8(fp)
+  35 07d8 033404FF 	>  ld fp,-16(fp)
+  35 07dc 13010101 	>  addi sp,sp,(0+16)
+  36 07e0 67800000 	        ret
+  49              	.include "drivers/uart/print.s"
+   1              	print_string:
+   2              	    salloc 16
+   2 07e4 233C11FE 	>  sd ra,-8(sp)
+   2 07e8 233881FE 	>  sd fp,-16(sp)
+   2 07ec 13040100 	>  mv fp,sp
+   2 07f0 130101FE 	>  addi sp,sp,(-16-16)
+   3 07f4 23302101 	    sd s2, 0(sp)
+   4 07f8 23343101 	    sd s3, 8(sp)
+   5              	
+   6 07fc 13090500 	    mv s2, a0
+   7 0800 93090000 	    mv s3, zero
+   8              	
+   9 0804 B3023901 	1:  add t0,s2,s3
+  10 0808 03C50200 	    lbu a0, (t0)
+  11 080c 630A0500 	    beqz a0, 1f
+  12 0810 97000000 	    call uart_putc
+  12      E7800000 
+  13 0818 93891900 	    addi s3,s3,1
+  14 081c 6FF09FFE 	    j 1b
+  15              	1:
+  16 0820 83398100 	    ld s3, 8(sp)        
+  17 0824 03390100 	    ld s2, 0(sp)
+  18              	    sfree 16
+  18 0828 833084FF 	>  ld ra,-8(fp)
+  18 082c 033404FF 	>  ld fp,-16(fp)
+  18 0830 13010102 	>  addi sp,sp,(16+16)
+  19 0834 67800000 	    ret
+  20              	
+  21              	print_newline:
+  22              	    salloc 0
+  22 0838 233C11FE 	>  sd ra,-8(sp)
+  22 083c 233881FE 	>  sd fp,-16(sp)
+  22 0840 13040100 	>  mv fp,sp
+  22 0844 130101FF 	>  addi sp,sp,(-16-0)
+  23              	    
+  24 0848 1305A000 	    li a0,0xa
+  25 084c 97000000 	    call uart_putc
+  25      E7800000 
+  26 0854 1305D000 	    li a0,0xd
+  27 0858 97000000 	    call uart_putc
+  27      E7800000 
+  28              	
+  29              	    sfree 0    
+  29 0860 833084FF 	>  ld ra,-8(fp)
+  29 0864 033404FF 	>  ld fp,-16(fp)
+GAS LISTING src/main.s 			page 23
+
+
+  29 0868 13010101 	>  addi sp,sp,(0+16)
+  30 086c 67800000 	    ret
+  31              	
+  32              	print_int_hex:
+  33 0870 130181FB 	    addi sp,sp,-72
+  34 0874 233C8102 	    sd fp, 56(sp)
+  35 0878 23301104 	    sd ra, 64(sp)
+  36 087c 13048104 	    addi fp,sp,72
+  37 0880 23343103 	    sd s3,40(sp)
+  38 0884 23304103 	    sd s4,32(sp)
+  39 0888 233C5101 	    sd s5,24(sp)
+  40 088c 23386103 	    sd s6,48(sp)
+  41              	    
+  42 0890 93090500 	    mv s3,a0
+  43 0894 130A0001 	    li s4,0x10
+  44 0898 130B0000 	    li s6,0x0
+  45              	
+  46 089c 63900902 	    bnez s3,1f
+  47              	
+  48 08a0 97020000 	    la t0,HEX
+  48      93820200 
+  49 08a8 03C30200 	    lbu t1,(t0)
+  50 08ac B3026101 	    add t0,sp,s6
+  51 08b0 23806200 	    sb t1,(t0)
+  52 08b4 130B1B00 	    addi s6,s6,1
+  53 08b8 6F00C002 	    j 2f
+  54              	    
+  55 08bc B3FA4903 	1:  remu s5,s3,s4
+  56 08c0 B3D94903 	    divu s3,s3,s4
+  57              	
+  58 08c4 97020000 	    la t0,HEX
+  58      93820200 
+  59 08cc B3825201 	    add t0,t0,s5
+  60 08d0 03C30200 	    lbu t1,(t0)
+  61 08d4 B3026101 	    add t0,sp,s6
+  62 08d8 23806200 	    sb t1,(t0)
+  63 08dc 130B1B00 	    addi s6,s6,1
+  64              	    
+  65 08e0 E39E09FC 	    bnez s3,1b
+  66              	2:
+  67 08e4 13050003 	    li a0,0x30
+  68 08e8 97000000 	    call uart_putc
+  68      E7800000 
+  69 08f0 13058007 	    li a0,0x78
+  70 08f4 97000000 	    call uart_putc
+  70      E7800000 
+  71              	
+  72 08fc 130BFBFF 	1:  addi s6,s6,-1
+  73 0900 B3026101 	    add t0,sp,s6
+  74 0904 03850200 	    lb a0, (t0)
+  75 0908 97000000 	    call uart_putc
+  75      E7800000 
+  76 0910 E3160BFE 	    bnez s6,1b
+  77              	
+  78 0914 033B0103 	    ld s6,48(sp)
+  79 0918 833A8101 	    ld s5,24(sp)
+  80 091c 033A0102 	    ld s4,32(sp)
+GAS LISTING src/main.s 			page 24
+
+
+  81 0920 83398102 	    ld s3,40(sp)
+  82 0924 03348103 	    ld fp, 56(sp)
+  83 0928 83300104 	    ld ra, 64(sp)
+  84 092c 13018104 	    addi sp,sp,72
+  85              	
+  86              	    
+  87 0930 67800000 	    ret
+  88              	
+  89              	print_int_dec:
+  90 0934 130181FB 	    addi sp,sp,-72
+  91 0938 233C8102 	    sd fp, 56(sp)
+  92 093c 23301104 	    sd ra, 64(sp)
+  93 0940 13048104 	    addi fp,sp,72
+  94 0944 23343103 	    sd s3,40(sp)
+  95 0948 23304103 	    sd s4,32(sp)
+  96 094c 233C5101 	    sd s5,24(sp)
+  97 0950 23386103 	    sd s6,48(sp)
+  98              	
+  99              	    
+ 100 0954 93090500 	    mv s3,a0
+ 101 0958 130AA000 	    li s4,10
+ 102 095c 130B0000 	    li s6,0x0
+ 103              	
+ 104 0960 63900902 	    bnez s3,1f
+ 105              	
+ 106 0964 97020000 	    la t0,HEX
+ 106      93820200 
+ 107 096c 03C30200 	    lbu t1,(t0)
+ 108 0970 B3026101 	    add t0,sp,s6
+ 109 0974 23806200 	    sb t1,(t0)
+ 110 0978 130B1B00 	    addi s6,s6,1
+ 111 097c 6F00C002 	    j 2f
+ 112              	
+ 113 0980 B3FA4903 	1:  remu s5,s3,s4
+ 114 0984 B3D94903 	    divu s3,s3,s4
+ 115              	    
+ 116 0988 97020000 	    la t0,HEX
+ 116      93820200 
+ 117 0990 B3825201 	    add t0,t0,s5
+ 118 0994 03830200 	    lb t1,(t0)
+ 119 0998 B3026101 	    add t0,sp,s6
+ 120 099c 23806200 	    sb t1,(t0)
+ 121 09a0 130B1B00 	    addi s6,s6,1
+ 122              	    
+ 123 09a4 E39E09FC 	    bnez s3,1b
+ 124              	
+ 125 09a8 130BFBFF 	2:  addi s6,s6,-1
+ 126 09ac B3026101 	    add t0,sp,s6
+ 127 09b0 03850200 	    lb a0, (t0)
+ 128 09b4 97000000 	    call uart_putc
+ 128      E7800000 
+ 129 09bc E3160BFE 	    bnez s6,2b
+ 130              	
+ 131 09c0 033B0103 	    ld s6,48(sp)
+ 132 09c4 833A8101 	    ld s5,24(sp)
+ 133 09c8 033A0102 	    ld s4,32(sp)
+ 134 09cc 83398102 	    ld s3,40(sp)
+GAS LISTING src/main.s 			page 25
+
+
+ 135 09d0 03348103 	    ld fp, 56(sp)
+ 136 09d4 83300104 	    ld ra, 64(sp)
+ 137 09d8 13018104 	    addi sp,sp,72
+ 138              	    
+ 139 09dc 67800000 	    ret
+  50              	.include "drivers/uart/printf.s"
+   1              	printf:
+   2              	        salloc 64
+   2 09e0 233C11FE 	>  sd ra,-8(sp)
+   2 09e4 233881FE 	>  sd fp,-16(sp)
+   2 09e8 13040100 	>  mv fp,sp
+   2 09ec 130101FB 	>  addi sp,sp,(-16-64)
+   3 09f0 23303101 	        sd   s3,   0(sp)
+   4 09f4 23344101 	        sd   s4,   8(sp)
+   5 09f8 23385101 	        sd   s5,  16(sp)
+   6              	                
+   7 09fc 93090500 	        mv s3,a0
+   8 0a00 130A0000 	        mv s4,zero
+   9 0a04 930A0000 	        mv s5,zero
+  10              	
+  11 0a08 23340102 	9:      sd zero,40(sp)
+  12 0a0c 93020002 	        li t0,' '
+  13 0a10 23385102 	        sd t0,48(sp)
+  14              	
+  15 0a14 B3023A01 	        add t0,s4,s3 #load char
+  16 0a18 03C50200 	        lbu a0,(t0)
+  17              	
+  18 0a1c 63020512 	        beqz a0,9f # jump to end if null
+  19 0a20 93025002 	        li t0,'%'
+  20 0a24 630A5500 	        beq a0,t0,1f
+  21 0a28 97000000 	2:      call uart_putc # print normal char
+  21      E7800000 
+  22 0a30 130A1A00 	        addi s4,s4,0x1
+  23 0a34 6FF05FFD 	        j 9b
+  24              	        
+  25 0a38 130A1A00 	1:      addi s4,s4,0x1
+  26 0a3c B3023A01 	        add t0,s4,s3
+  27 0a40 03C50200 	        lbu a0,(t0)
+  28 0a44 630E050E 	        beqz a0,9f # jump to end if null
+  29 0a48 93025002 	        li t0,'%'
+  30 0a4c E30E55FC 	        beq a0,t0,2b
+  31              	        
+  32              	#[ci    [   Flags   ]
+  33              	
+  34 0a50 93020003 	        li t0,'0'
+  35 0a54 631C5500 	        bne a0,t0,1f
+  36 0a58 23085102 	        sb t0,48(sp)
+  37              	        
+  38 0a5c 130A1A00 	2:      addi s4,s4,0x1
+  39 0a60 B3023A01 	        add t0,s4,s3
+  40 0a64 03C50200 	        lbu a0,(t0)
+  41 0a68 630C050C 	        beqz a0,9f # jump to end if null
+  42              	
+  43              	#[ci    [ Width ]
+  44              	
+  45 0a6c 93020003 	1:      li t0,'0'
+  46 0a70 63445502 	        blt a0,t0,1f
+GAS LISTING src/main.s 			page 26
+
+
+  47 0a74 9302A003 	        li t0,'9'+1
+  48 0a78 63505502 	        bge a0,t0,1f
+  49              	
+  50 0a7c 83328102 	        ld t0,40(sp)
+  51 0a80 1303A000 	        li t1,10
+  52 0a84 B3826202 	        mul t0,t0,t1
+  53 0a88 B382A200 	        add t0,t0,a0
+  54 0a8c 938202FD 	        addi t0,t0,-0x30
+  55 0a90 23345102 	        sd t0,40(sp)
+  56 0a94 6FF09FFC 	        j 2b        
+  57              	
+  58              	#[ci    [ Specifier ]
+  59              	
+  60 0a98 93025007 	1:      li t0,'u'
+  61 0a9c 630A5500 	        beq a0,t0,2f
+  62 0aa0 93028007 	        li t0,'x'
+  63 0aa4 63065500 	        beq a0,t0,2f
+  64 0aa8 93028005 	        li t0,'X'
+  65 0aac 63105504 	        bne a0,t0,1f
+  66              	#[yi    [     Integer     ]
+  67              	
+  68 0ab0 233CB100 	2:      sd a1,24(sp)
+  69 0ab4 2330C102 	        sd a2,32(sp)    # Save regs    
+  70              	
+  71 0ab8 93820500 	        mv t0,a1
+  72 0abc 93050500 	        mv a1,a0
+  73              	        
+  74 0ac0 B3825201 	        add t0,t0,s5 # arg addr + offset
+  75 0ac4 03B50200 	        ld a0,(t0)
+  76              	        
+  77 0ac8 03368102 	        ld a2,40(sp)
+  78 0acc 83460103 	        lbu a3,48(sp)
+  79              	
+  80 0ad0 97000000 	        call print_number
+  80      E7800000 
+  81              	        
+  82 0ad8 03360102 	        ld a2,32(sp)    # Restore regs  
+  83 0adc 83358101 	        ld a1,24(sp)    #               
+  84              	        
+  85 0ae0 938A8A00 	        addi s5,s5,0x8
+  86 0ae4 130A1A00 	        addi s4,s4,0x1
+  87 0ae8 6FF01FF2 	        j 9b
+  88              	        
+  89              	#[yi    [                 ]
+  90              	
+  91 0aec 93023006 	1:      li t0,'c'
+  92 0af0 63105502 	        bne a0,t0,1f
+  93              	
+  94              	#[yi    [ Character ]
+  95              	
+  96 0af4 B3825501 	        add t0,a1,s5 # arg addr + offset
+  97 0af8 03850200 	        lb a0,(t0)
+  98 0afc 97000000 	        call uart_putc
+  98      E7800000 
+  99 0b04 938A1A00 	        addi s5,s5,0x1
+ 100 0b08 130A1A00 	        addi s4,s4,0x1
+ 101 0b0c 6FF0DFEF 	        j 9b
+GAS LISTING src/main.s 			page 27
+
+
+ 102              	
+ 103              	#[yi    [           ]
+ 104              	        
+ 105 0b10 93023007 	1:      li t0,'s'
+ 106 0b14 63105502 	        bne a0,t0,1f
+ 107              	
+ 108              	#[yi    [   String   ]
+ 109              	
+ 110 0b18 B3825501 	        add t0,a1,s5 # arg addr + offset
+ 111 0b1c 03B50200 	        ld a0,(t0)
+ 112 0b20 97000000 	        call print_string
+ 112      E7800000 
+ 113 0b28 938A8A00 	        addi s5,s5,0x8
+ 114 0b2c 130A1A00 	        addi s4,s4,0x1
+ 115 0b30 6FF09FED 	        j 9b
+ 116              	
+ 117              	#[yi    [            ]
+ 118              	        
+ 119 0b34 97000000 	1:      call uart_putc
+ 119      E7800000 
+ 120 0b3c 73000000 	        ecall
+ 121              	        
+ 122              	
+ 123 0b40 833A0101 	9:      ld   s5,  16(sp)
+ 124 0b44 033A8100 	        ld   s4,   8(sp)
+ 125 0b48 83390100 	        ld   s3,   0(sp)
+ 126              	        sfree 64
+ 126 0b4c 833084FF 	>  ld ra,-8(fp)
+ 126 0b50 033404FF 	>  ld fp,-16(fp)
+ 126 0b54 13010105 	>  addi sp,sp,(64+16)
+ 127 0b58 67800000 	        ret        
+  51              	.include "drivers/uart/print_number.s"
+   1              	                                    # a0 = number       
+   2              	                                    # a1 = specifier    
+   3              	                                    # a2 = width        
+   4              	                                    # a3 = flags        
+   5              	print_number:
+   6              	        salloc 32
+   6 0b5c 233C11FE 	>  sd ra,-8(sp)
+   6 0b60 233881FE 	>  sd fp,-16(sp)
+   6 0b64 13040100 	>  mv fp,sp
+   6 0b68 130101FD 	>  addi sp,sp,(-16-32)
+   7 0b6c 23303101 	        sd   s3,   -0(sp)
+   8 0b70 23344101 	        sd   s4,   8(sp)
+   9 0b74 23385101 	        sd   s5,  16(sp)
+  10 0b78 233C6101 	        sd   s6,  24(sp)
+  11              	        
+  12 0b7c 93090500 	        mv s3,a0
+  13 0b80 130B0100 	        mv s6,sp
+  14              	
+  15 0b84 97030000 	        la t2,HEX
+  15      93830300 
+  16 0b8c 93020001 	        li t0,0x10
+  17 0b90 13035007 	        li t1,'u'
+  18 0b94 63946500 	        bne a1,t1,1f
+  19 0b98 9302A000 	        li t0,10
+  20 0b9c 13038007 	1:      li t1,'x'
+GAS LISTING src/main.s 			page 28
+
+
+  21 0ba0 63966500 	        bne a1,t1,1f
+  22 0ba4 97030000 	        la t2,hex
+  22      93830300 
+  23              	        
+  24 0bac 33FA5902 	1:      remu s4,s3,t0
+  25 0bb0 B3D95902 	        divu s3,s3,t0
+  26              	        
+  27 0bb4 33834301 	        add t1,t2,s4
+  28 0bb8 03430300 	        lbu t1,(t1)
+  29              	        
+  30 0bbc 1301F1FF 	        addi sp,sp,-1
+  31 0bc0 23006100 	        sb t1,(sp)
+  32 0bc4 E39409FE 	        bnez s3,1b
+  33              	        
+  34 0bc8 B3092B40 	        sub s3,s6,sp
+  35 0bcc 63C6C900 	        blt s3,a2,1f
+  36 0bd0 93090000 	        li s3,0
+  37 0bd4 6F008002 	        j 3f
+  38 0bd8 B3093641 	1:      sub s3,a2,s3
+  39 0bdc 13038007 	        li t1,'x'
+  40 0be0 63866500 	        beq a1,t1,2f
+  41 0be4 13038005 	        li t1,'X'
+  42 0be8 639A6500 	        bne a1,t1,3f
+  43              	        
+  44 0bec 13032000 	2:      li t1,2
+  45 0bf0 63D46900 	        bge s3,t1,2f
+  46 0bf4 93092000 	        li s3,2
+  47 0bf8 9389E9FF 	2:      addi s3,s3,-2
+  48              	
+  49 0bfc 93020003 	3:      li t0,'0'
+  50 0c00 63965602 	        bne a3,t0,2f
+  51 0c04 93028007 	        li t0,'x'
+  52 0c08 63865500 	        beq a1,t0,1f
+  53 0c0c 93028005 	        li t0,'X'
+  54 0c10 639E5500 	        bne a1,t0,2f
+  55              	        
+  56 0c14 13050003 	1:      li a0,'0'
+  57 0c18 97000000 	        call uart_putc
+  57      E7800000 
+  58 0c20 13850500 	        mv a0,a1
+  59 0c24 97000000 	        call uart_putc
+  59      E7800000 
+  60              	        
+  61 0c2c 13850600 	2:      mv a0,a3
+  62              	
+  63 0c30 638A0900 	1:      beqz s3,1f
+  64 0c34 97000000 	        call uart_putc
+  64      E7800000 
+  65 0c3c 9389F9FF 	        addi s3,s3,-1
+  66 0c40 6FF01FFF 	        j 1b
+  67              	
+  68 0c44 93020003 	1:      li t0,'0'
+  69 0c48 63865602 	        beq a3,t0,1f
+  70 0c4c 93028007 	        li t0,'x'
+  71 0c50 63865500 	        beq a1,t0,2f
+  72 0c54 93028005 	        li t0,'X'
+  73 0c58 639E5500 	        bne a1,t0,1f
+GAS LISTING src/main.s 			page 29
+
+
+  74              	        
+  75 0c5c 13050003 	2:      li a0,'0'
+  76 0c60 97000000 	        call uart_putc
+  76      E7800000 
+  77 0c68 13850500 	        mv a0,a1
+  78 0c6c 97000000 	        call uart_putc
+  78      E7800000 
+  79              	
+  80 0c74 63542B00 	1:      ble sp,s6,1f                # illegal if sp not le s6
+  81 0c78 73000000 	        ecall
+  82              	
+  83 0c7c 03450100 	1:      lbu a0,(sp)
+  84 0c80 97000000 	        call uart_putc
+  84      E7800000 
+  85 0c88 13011100 	        addi sp,sp,1
+  86 0c8c E31861FF 	        bne sp,s6,1b
+  87              	                        
+  88              	
+  89 0c90 033B8101 	        ld   s6,  24(sp)
+  90 0c94 833A0101 	        ld   s5,  16(sp)
+  91 0c98 033A8100 	        ld   s4,   8(sp)
+  92 0c9c 83390100 	        ld   s3,   0(sp)
+  93              	        sfree 32
+  93 0ca0 833084FF 	>  ld ra,-8(fp)
+  93 0ca4 033404FF 	>  ld fp,-16(fp)
+  93 0ca8 13010103 	>  addi sp,sp,(32+16)
+  94 0cac 67800000 	        ret
+  52              	
+  53              	.include "drivers/vga/init.s"
+   1              	.equ VGA_ID,0x11111234
+   2              	
+   3              	.equ VBE_DISPI_INDEX_ID, 0
+   4              	.equ VBE_DISPI_INDEX_XRES, 1
+   5              	.equ VBE_DISPI_INDEX_YRES, 2
+   6              	.equ VBE_DISPI_INDEX_BPP, 3
+   7              	.equ VBE_DISPI_INDEX_ENABLE, 4
+   8              	.equ VBE_DISPI_INDEX_BANK, 5
+   9              	.equ VBE_DISPI_INDEX_VIRT_WIDTH, 6
+  10              	.equ VBE_DISPI_INDEX_VIRT_HEIGHT, 7
+  11              	.equ VBE_DISPI_INDEX_X_OFFSET, 8
+  12              	.equ VBE_DISPI_INDEX_Y_OFFSET, 9
+  13              	
+  14              	.equ VGA_XRES,1280
+  15              	.equ VGA_YRES,1080
+  16              	.equ VGA_BPP,32
+  17              	
+  18              	vga_init:
+  19              	        salloc 0
+  19 0cb0 233C11FE 	>  sd ra,-8(sp)
+  19 0cb4 233881FE 	>  sd fp,-16(sp)
+  19 0cb8 13040100 	>  mv fp,sp
+  19 0cbc 130101FF 	>  addi sp,sp,(-16-0)
+  20              	
+  21 0cc0 97000000 	        call vga_init_pci
+  21      E7800000 
+  22              	
+  23 0cc8 97000000 	        call vga_boch_init
+GAS LISTING src/main.s 			page 30
+
+
+  23      E7800000 
+  24              	
+  25 0cd0 37655400 	        li a0,4*1280*1080
+  26 0cd4 97000000 	        call malloc
+  26      E7800000 
+  27              	
+  28 0cdc 97020000 	        la t0,vga_buffer
+  28      93820200 
+  29 0ce4 23B0A200 	        sd a0,(t0)
+  30              	
+  31              	        sfree 0
+  31 0ce8 833084FF 	>  ld ra,-8(fp)
+  31 0cec 033404FF 	>  ld fp,-16(fp)
+  31 0cf0 13010101 	>  addi sp,sp,(0+16)
+  32 0cf4 67800000 	        ret
+  33              	
+  34              	vga_boch_init:
+  35              	        salloc 0
+  35 0cf8 233C11FE 	>  sd ra,-8(sp)
+  35 0cfc 233881FE 	>  sd fp,-16(sp)
+  35 0d00 13040100 	>  mv fp,sp
+  35 0d04 130101FF 	>  addi sp,sp,(-16-0)
+  36 0d08 97020000 	        la t0,vga_mmio_ptr
+  36      93820200 
+  37 0d10 83B20200 	        ld t0,(t0)
+  38              	        
+  39 0d14 13830250 	        addi t1,t0,0x500 # bochs dispi interface registers
+  40              	
+  41 0d18 83530300 	        lhu t2,(VBE_DISPI_INDEX_ID << 1)(t1)
+  42 0d1c 37BE0000 	        li t3,0xB0C5
+  42      1B0E5E0C 
+  43 0d24 6382C301 	        beq t2,t3,1f
+  44              	        #[ci [ Disable VBE Extentions ]
+  45 0d28 23140300 	1:      sh zero,(VBE_DISPI_INDEX_ENABLE << 1)(t1)
+  46              	
+  47 0d2c 0F003003 	        fence rw,rw
+  48 0d30 0F00C00C 	        fence io,io
+  49              	
+  50              	        #[ci [ Set resolution and bit depth]
+  51 0d34 93020050 	        li t0,VGA_XRES
+  52 0d38 23115300 	        sh t0,(VBE_DISPI_INDEX_XRES << 1)(t1)
+  53 0d3c 93028043 	        li t0,VGA_YRES
+  54 0d40 23125300 	        sh t0,(VBE_DISPI_INDEX_YRES << 1)(t1)
+  55 0d44 93020002 	        li t0,VGA_BPP
+  56 0d48 23135300 	        sh t0,(VBE_DISPI_INDEX_BPP << 1)(t1)
+  57              	
+  58 0d4c 0F003003 	        fence rw,rw
+  59 0d50 0F00C00C 	        fence io,io
+  60              	        
+  61              	        #[ci [ Enable VBE Extentions ]
+  62 0d54 9302100C 	        li t0,0xc1
+  63 0d58 23145300 	        sh t0,(VBE_DISPI_INDEX_ENABLE << 1)(t1)
+  64              	
+  65              	        
+  66              	
+  67              	        sfree 0
+  67 0d5c 833084FF 	>  ld ra,-8(fp)
+GAS LISTING src/main.s 			page 31
+
+
+  67 0d60 033404FF 	>  ld fp,-16(fp)
+  67 0d64 13010101 	>  addi sp,sp,(0+16)
+  68 0d68 67800000 	        ret
+  69              	
+  70              	vga_init_pci:
+  71              	        salloc 16
+  71 0d6c 233C11FE 	>  sd ra,-8(sp)
+  71 0d70 233881FE 	>  sd fp,-16(sp)
+  71 0d74 13040100 	>  mv fp,sp
+  71 0d78 130101FE 	>  addi sp,sp,(-16-16)
+  72              	
+  73 0d7c 37151111 	        li a0,VGA_ID
+  73      1B054523 
+  74 0d84 97000000 	        call pci_scan
+  74      E7800000 
+  75 0d8c 2330A100 	        sd a0,(sp)
+  76              	
+  77 0d90 93050000 	        li a1,0x0
+  78 0d94 97000000 	        call pci_allocate_bar_to_mmio_region
+  78      E7800000 
+  79 0d9c 97020000 	        la t0,vga_frame_buffer_ptr
+  79      93820200 
+  80 0da4 23B0A200 	        sd a0,(t0)
+  81              	        
+  82 0da8 03350100 	        ld a0,(sp)
+  83              	
+  84 0dac 93052000 	        li a1,0x2
+  85 0db0 97000000 	        call pci_allocate_bar_to_mmio_region
+  85      E7800000 
+  86 0db8 97020000 	        la t0,vga_mmio_ptr
+  86      93820200 
+  87 0dc0 23B0A200 	        sd a0,(t0)
+  88              	        
+  89              	        sfree 16
+  89 0dc4 833084FF 	>  ld ra,-8(fp)
+  89 0dc8 033404FF 	>  ld fp,-16(fp)
+  89 0dcc 13010102 	>  addi sp,sp,(16+16)
+  90 0dd0 67800000 	        ret
+  54              	.include "drivers/vga/api.s"
+   1              	vga_flush:
+   2              	        salloc 64
+   2 0dd4 233C11FE 	>  sd ra,-8(sp)
+   2 0dd8 233881FE 	>  sd fp,-16(sp)
+   2 0ddc 13040100 	>  mv fp,sp
+   2 0de0 130101FB 	>  addi sp,sp,(-16-64)
+   3              	
+   4 0de4 23305100 	        sd t0,(sp)
+   5 0de8 23346100 	        sd t1,8(sp)
+   6 0dec 23387100 	        sd t2,0x10(sp)
+   7 0df0 233CC101 	        sd t3,0x18(sp)
+   8              	        
+   9 0df4 97020000 	        la t0,vga_frame_buffer_ptr
+   9      93820200 
+  10 0dfc 83B20200 	        ld t0,(t0)
+  11 0e00 17030000 	        ld t1,vga_buffer
+  11      03330300 
+  12              	
+GAS LISTING src/main.s 			page 32
+
+
+  13 0e08 93030000 	        li t2,0x0
+  14 0e0c 372E1500 	        li t3,1280*1080
+  14      1B0E0E80 
+  15              	
+  16 0e14 833E0300 	1:      ld t4,(t1)
+  17 0e18 23B0D201 	        sd t4,(t0)
+  18              	
+  19 0e1c 93828200 	        addi t0,t0,0x8
+  20 0e20 13038300 	        addi t1,t1,0x8
+  21              	
+  22 0e24 93832300 	        addi t2,t2,0x2
+  23 0e28 E3C6C3FF 	        blt t2,t3,1b
+  24              	
+  25 0e2c 83320100 	        ld t0,(sp)
+  26 0e30 03338100 	        ld t1,8(sp)
+  27 0e34 83330101 	        ld t2,0x10(sp)
+  28 0e38 033E8101 	        ld t3,0x18(sp)
+  29              	
+  30              	        sfree 64
+  30 0e3c 833084FF 	>  ld ra,-8(fp)
+  30 0e40 033404FF 	>  ld fp,-16(fp)
+  30 0e44 13010105 	>  addi sp,sp,(64+16)
+  31              	
+  32 0e48 67800000 	        ret
+  33              	
+  34              	
+  35              	vga_write_rect:
+  36              	#[ci [ a0 = color, a1 = x, a2 = y, a3 = w, a4 = h ]
+  37              	        salloc 58
+  37 0e4c 233C11FE 	>  sd ra,-8(sp)
+  37 0e50 233881FE 	>  sd fp,-16(sp)
+  37 0e54 13040100 	>  mv fp,sp
+  37 0e58 130161FB 	>  addi sp,sp,(-16-58)
+  38              	        
+  39 0e5c 23309100 	        sd s1,(sp)
+  40 0e60 23342101 	        sd s2,8(sp)
+  41 0e64 23383101 	        sd s3,0x10(sp)
+  42              	        
+  43 0e68 233C4101 	        sd s4,0x18(sp)
+  44 0e6c 23305103 	        sd s5,0x20(sp)
+  45              	    
+  46 0e70 93040000 	        li s1,0x0
+  47 0e74 97090000 	        ld s3,vga_buffer
+  47      83B90900 
+  48 0e7c 130A0050 	        li s4,1280
+  49              	
+  50 0e80 13090000 	1:      li s2,0x0
+  51 0e84 B38AC400 	        add s5,s1,a2
+  52 0e88 B38A4A03 	        mul s5,s5,s4
+  53 0e8c B38ABA00 	        add s5,s5,a1
+  54 0e90 939A2A00 	        slli s5,s5,0x2
+  55 0e94 B38A3A01 	        add s5,s5,s3
+  56              	        
+  57 0e98 23A0AA00 	2:      sw a0,(s5)
+  58 0e9c 938A4A00 	        addi s5,s5,0x4
+  59              	
+  60 0ea0 13091900 	        addi s2,s2,0x1
+GAS LISTING src/main.s 			page 33
+
+
+  61 0ea4 E34AD9FE 	        blt s2,a3,2b
+  62              	        
+  63 0ea8 93841400 	        addi s1,s1,0x1
+  64 0eac E3CAE4FC 	        blt s1,a4,1b
+  65              	
+  66 0eb0 83340100 	        ld s1,(sp)
+  67 0eb4 03398100 	        ld s2,8(sp)
+  68 0eb8 83390101 	        ld s3,0x10(sp)        
+  69              	
+  70 0ebc 033A8101 	        ld s4,0x18(sp)
+  71 0ec0 833A0102 	        ld s5,0x20(sp)
+  72              	        
+  73              	        sfree 58
+  73 0ec4 833084FF 	>  ld ra,-8(fp)
+  73 0ec8 033404FF 	>  ld fp,-16(fp)
+  73 0ecc 1301A104 	>  addi sp,sp,(58+16)
+  74 0ed0 67800000 	        ret
+  55              	
+  56              	#.include "drivers/usb/xhcl/init.s"
+  57              	#.include "drivers/usb/xhcl/api.s"
+  58              	
+  59              	.include "drivers/virtio/pci/transport.s"
+   1              	.local COMMON_CONFIG
+   2              	.local NOTIFICATION
+   3              	.local ISR_STATUS
+   4              	.local DEVICE_CONFIG
+   5              	.local NOTI_OFF_MULT
+   6              	.local VQ_SIZE
+   7              	.local VQ_DESCRIPTOR_TABLE
+   8              	.local VQ_AVAIL_RING
+   9              	.local VQ_USED_RING
+  10              	.equ COMMON_CONFIG,0x0
+  11              	.equ NOTIFICATION,0x8
+  12              	.equ ISR_STATUS,0x10
+  13              	.equ DEVICE_CONFIG,0x18
+  14              	.equ NOTI_OFF_MULT,0x20
+  15              	
+  16              	.equ VQ_DESCRIPTOR_TABLE,0x28
+  17              	.equ VQ_AVAIL_RING,0x30
+  18              	.equ VQ_USED_RING,0x38
+  19              	
+  20              	.equ VQ_SIZE,0x40
+  21              	
+  22              	virtio_pci_transport_init_device:
+  23              	#[ci [ a0 = address off config ]
+  24              	        salloc 16
+  24 0ed4 233C11FE 	>  sd ra,-8(sp)
+  24 0ed8 233881FE 	>  sd fp,-16(sp)
+  24 0edc 13040100 	>  mv fp,sp
+  24 0ee0 130101FE 	>  addi sp,sp,(-16-16)
+  25              	
+  26 0ee4 2330A100 	        sd a0,0x0(sp)
+  27              	        
+  28 0ee8 13052004 	        li a0,0x42
+  29 0eec 97000000 	        call malloc
+  29      E7800000 
+  30 0ef4 2334A100 	        sd a0,0x8(sp)
+GAS LISTING src/main.s 			page 34
+
+
+  31              	        
+  32 0ef8 03350100 	        ld a0,0x0(sp)
+  33 0efc 97000000 	        call virtio_pci_transport_get_regs
+  33      E7800000 
+  34              	        
+  35 0f04 83328100 	        ld t0,0x8(sp)
+  36 0f08 23B0A200 	        sd a0, COMMON_CONFIG(t0)
+  37 0f0c 23B4B200 	        sd a1,  NOTIFICATION(t0)
+  38 0f10 23B8C200 	        sd a2,    ISR_STATUS(t0)
+  39 0f14 23BCD200 	        sd a3, DEVICE_CONFIG(t0)
+  40 0f18 23B0E202 	        sd a4, NOTI_OFF_MULT(t0)
+  41              	
+  42 0f1c 03358100 	        ld a0,0x8(sp)
+  43              	
+  44              	        sfree 16
+  44 0f20 833084FF 	>  ld ra,-8(fp)
+  44 0f24 033404FF 	>  ld fp,-16(fp)
+  44 0f28 13010102 	>  addi sp,sp,(16+16)
+  45 0f2c 67800000 	        ret
+  46              	
+  47              	virtio_pci_transport_get_regs:
+  48              	#[ci [ a0 = address off config ]
+  49              	        salloc 72
+  49 0f30 233C11FE 	>  sd ra,-8(sp)
+  49 0f34 233881FE 	>  sd fp,-16(sp)
+  49 0f38 13040100 	>  mv fp,sp
+  49 0f3c 130181FA 	>  addi sp,sp,(-16-72)
+  50 0f40 233C9102 	        sd s1,0x38(sp)
+  51 0f44 23302105 	        sd s2,0x40(sp)
+  52              	
+  53 0f48 93040000 	        li s1,0x0
+  54              	
+  55 0f4c 83624503 	        lwu t0,0x34(a0)
+  56 0f50 33095500 	        add s2,a0,t0
+  57 0f54 83420900 	2:      lbu t0,(s2)
+  58 0f58 13039000 	        li t1,0x9
+  59 0f5c 639E6206 	        bne t0,t1,1f
+  60              	
+  61 0f60 83423900 	        lbu t0,0x3(s2)
+  62 0f64 13035000 	        li t1,0x5
+  63 0f68 63D86206 	        bge t0,t1,1f
+  64              	
+  65              	#[ri [ allocate bar ]
+  66              	
+  67 0f6c 13032000 	        li t1,0x2
+  68 0f70 63966200 	        bne t0,t1,3f
+  69 0f74 03630901 	        lwu t1,0x10(s2)
+  70 0f78 23346102 	        sd t1,0x28(sp)
+  71              	3:
+  72 0f7c 83454900 	        lbu a1,0x4(s2)
+  73              	        
+  74 0f80 93021000 	        li t0,0x1
+  75 0f84 B392B200 	        sll t0,t0,a1
+  76 0f88 33F35400 	        and t1,s1,t0
+  77 0f8c 63100302 	        bnez t1,3f
+  78              	
+  79 0f90 B3E45400 	        or s1,s1,t0
+GAS LISTING src/main.s 			page 35
+
+
+  80              	        
+  81 0f94 2330A100 	        sd a0,(sp)
+  82 0f98 97000000 	        call pci_allocate_bar_to_mmio_region
+  82      E7800000 
+  83 0fa0 93020500 	        mv t0,a0
+  84 0fa4 03350100 	        ld a0,(sp)
+  85 0fa8 6F008001 	        j 4f
+  86              	        
+  87 0fac 2330A100 	3:      sd a0,(sp)
+  88 0fb0 97000000 	        call pci_get_bar_address
+  88      E7800000 
+  89 0fb8 93020500 	        mv t0,a0
+  90 0fbc 03350100 	        ld a0,(sp)
+  91              	        
+  92 0fc0 03638900 	4:      lwu t1,0x8(s2)
+  93 0fc4 B3826200 	        add t0,t0,t1
+  94 0fc8 03433900 	        lbu t1,0x3(s2)
+  95 0fcc 13133300 	        slli t1,t1,0x3
+  96 0fd0 33032300 	        add t1,t1,sp
+  97 0fd4 23305300 	        sd t0,(t1)
+  98              	        
+  99 0fd8 83421900 	1:      lbu t0,0x1(s2)
+ 100              	
+ 101 0fdc 63860200 	        beqz t0,1f  
+ 102 0fe0 33095500 	        add s2,a0,t0
+ 103 0fe4 6FF01FF7 	        j 2b
+ 104              	
+ 105              	        
+ 106 0fe8 03358100 	1:      ld a0,0x8(sp)
+ 107 0fec 83350101 	        ld a1,0x10(sp)
+ 108 0ff0 03368101 	        ld a2,0x18(sp)
+ 109 0ff4 83360102 	        ld a3,0x20(sp)
+ 110 0ff8 03378102 	        ld a4,0x28(sp)
+ 111              	        
+ 112 0ffc 83348103 	        ld s1,0x38(sp)
+ 113 1000 03390104 	        ld s2,0x40(sp)
+ 114              	        sfree 72
+ 114 1004 833084FF 	>  ld ra,-8(fp)
+ 114 1008 033404FF 	>  ld fp,-16(fp)
+ 114 100c 13018105 	>  addi sp,sp,(72+16)
+ 115 1010 67800000 	        ret
+  60              	.include "drivers/virtio/pci/keyboard.s"
+   1              	.local COMMON_CONFIG
+   2              	.local NOTIFICATION
+   3              	.local ISR_STATUS
+   4              	.local DEVICE_CONFIG
+   5              	.local NOTI_OFF_MULT
+   6              	.local VQ_SIZE
+   7              	.local VQ_DESCRIPTOR_TABLE
+   8              	.local VQ_AVAIL_RING
+   9              	.local VQ_USED_RING
+  10              	.equ COMMON_CONFIG,0x0
+  11              	.equ NOTIFICATION,0x8
+  12              	.equ ISR_STATUS,0x10
+  13              	.equ DEVICE_CONFIG,0x18
+  14              	.equ NOTI_OFF_MULT,0x20
+  15              	
+GAS LISTING src/main.s 			page 36
+
+
+  16              	.equ VQ_DESCRIPTOR_TABLE,0x28
+  17              	.equ VQ_AVAIL_RING,0x30
+  18              	.equ VQ_USED_RING,0x38
+  19              	
+  20              	.equ VQ_SIZE,0x40
+  21              	
+  22              	virtio_pci_keyboard_init:
+  23              	#[ci [ a0 = address of config space ]
+  24              	        salloc 8
+  24 1014 233C11FE 	>  sd ra,-8(sp)
+  24 1018 233881FE 	>  sd fp,-16(sp)
+  24 101c 13040100 	>  mv fp,sp
+  24 1020 130181FE 	>  addi sp,sp,(-16-8)
+  25              	
+  26 1024 97000000 	        call virtio_pci_transport_init_device
+  26      E7800000 
+  27 102c 2330A100 	        sd a0,(sp)
+  28 1030 97000000 	        call virtio_input_handshake
+  28      E7800000 
+  29 1038 03350100 	        ld a0,(sp)
+  30 103c 97000000 	        call virtio_input_allocate_virtqueue
+  30      E7800000 
+  31 1044 03350100 	        ld a0,(sp)
+  32 1048 93050001 	        li a1,0x10
+  33 104c 73001000 	        ebreak
+  34              	#        call virtio_input_allocate_events
+  35              	        sfree 8
+  35 1050 833084FF 	>  ld ra,-8(fp)
+  35 1054 033404FF 	>  ld fp,-16(fp)
+  35 1058 13018101 	>  addi sp,sp,(8+16)
+  36 105c 67800000 	        ret
+  61              	.include "drivers/virtio/input.s"
+   1              	.local COMMON_CONFIG
+   2              	.local NOTIFICATION
+   3              	.local ISR_STATUS
+   4              	.local DEVICE_CONFIG
+   5              	.local NOTI_OFF_MULT
+   6              	.local VQ_SIZE
+   7              	.local VQ_DESCRIPTOR_TABLE
+   8              	.local VQ_AVAIL_RING
+   9              	.local VQ_USED_RING
+  10              	.equ COMMON_CONFIG,0x0
+  11              	.equ NOTIFICATION,0x8
+  12              	.equ ISR_STATUS,0x10
+  13              	.equ DEVICE_CONFIG,0x18
+  14              	.equ NOTI_OFF_MULT,0x20
+  15              	
+  16              	.equ VQ_DESCRIPTOR_TABLE,0x28
+  17              	.equ VQ_AVAIL_RING,0x30
+  18              	.equ VQ_USED_RING,0x38
+  19              	
+  20              	.equ VQ_SIZE,0x40
+  21              	
+  22              	.equ VIO_PCI_IN_VQUEUE_SIZE,0x40
+  23              	
+  24              	.local DEVICE_STATUS
+  25              	.equ DEVICE_STATUS,0x14
+GAS LISTING src/main.s 			page 37
+
+
+  26              	.local DEVICE_FEATURE
+  27              	.equ DEVICE_FEATURE,0x4
+  28              	.local DRIVER_FEATURE
+  29              	.equ DRIVER_FEATURE,0xc
+  30              	
+  31              	virtio_input_handshake:
+  32              	#[ci [ a0 = *Capabilities ]
+  33              	        salloc 0
+  33 1060 233C11FE 	>  sd ra,-8(sp)
+  33 1064 233881FE 	>  sd fp,-16(sp)
+  33 1068 13040100 	>  mv fp,sp
+  33 106c 130101FF 	>  addi sp,sp,(-16-0)
+  34              	
+  35 1070 83320500 	        ld t0,COMMON_CONFIG(a0)
+  36 1074 238A0200 	        sb zero,DEVICE_STATUS(t0)
+  37 1078 0F00C00C 	        fence io,io
+  38 107c 13031000 	        li t1,0x1
+  39 1080 238A6200 	        sb t1,DEVICE_STATUS(t0)
+  40 1084 0F00C00C 	        fence io,io
+  41 1088 13033000 	        li t1,0x3
+  42 108c 238A6200 	        sb t1,DEVICE_STATUS(t0)
+  43 1090 0F00C00C 	        fence io,io
+  44 1094 03E34200 	        lwu t1,DEVICE_FEATURE(t0)
+  45 1098 B7030030 	        li t2,0x30000000
+  46 109c 33737300 	        and t1,t1,t2
+  47 10a0 23A66200 	        sw t1,DRIVER_FEATURE(t0)
+  48 10a4 0F00C00C 	        fence io,io
+  49 10a8 1303B000 	        li t1,0xB
+  50 10ac 238A6200 	        sb t1,DEVICE_STATUS(t0)
+  51 10b0 0F00C00C 	        fence io,io
+  52 10b4 83C34201 	        lbu t2,DEVICE_STATUS(t0)
+  53 10b8 63047300 	        beq t1,t2,1f
+  54 10bc 73000000 	        ecall
+  55 10c0 1303F000 	1:      li t1,0xF
+  56 10c4 238A6200 	        sb t1,DEVICE_STATUS(t0)
+  57              	
+  58              	        sfree 0
+  58 10c8 833084FF 	>  ld ra,-8(fp)
+  58 10cc 033404FF 	>  ld fp,-16(fp)
+  58 10d0 13010101 	>  addi sp,sp,(0+16)
+  59 10d4 67800000 	        ret
+  60              	
+  61              	virtio_input_allocate_virtqueue:
+  62              	#[ci [ a0 = *Capabilities ]
+  63              	        salloc 40
+  63 10d8 233C11FE 	>  sd ra,-8(sp)
+  63 10dc 233881FE 	>  sd fp,-16(sp)
+  63 10e0 13040100 	>  mv fp,sp
+  63 10e4 130181FC 	>  addi sp,sp,(-16-40)
+  64 10e8 23309100 	        sd s1,(sp)
+  65              	
+  66 10ec 83320500 	        ld t0,COMMON_CONFIG(a0)
+  67              	
+  68 10f0 239B0200 	        sh zero,0x16(t0)
+  69 10f4 03D38201 	        lhu t1,0x18(t0)
+  70 10f8 93030004 	        li t2,0x40
+  71 10fc 3353730A 	        minu t1,t1,t2
+GAS LISTING src/main.s 			page 38
+
+
+  72 1100 23106504 	        sh t1,VQ_SIZE(a0)
+  73 1104 93040300 	        mv s1,t1
+  74              	
+  75 1108 2334A100 	        sd a0,0x8(sp)
+  76              	
+  77 110c 13954400 	        slli a0,s1,0x4
+  78 1110 97000000 	        call zalloc
+  78      E7800000 
+  79 1118 93020500 	        mv t0,a0
+  80 111c 03358100 	        ld a0,0x8(sp)
+  81 1120 23345502 	        sd t0,VQ_DESCRIPTOR_TABLE(a0)
+  82              	
+  83 1124 13951400 	        slli a0,s1,0x1
+  84 1128 13056500 	        addi a0,a0,6
+  85 112c 97000000 	        call zalloc
+  85      E7800000 
+  86 1134 93020500 	        mv t0,a0
+  87 1138 03358100 	        ld a0,0x8(sp)
+  88 113c 23385502 	        sd t0,VQ_AVAIL_RING(a0)
+  89              	
+  90 1140 13953400 	        slli a0,s1,0x3
+  91 1144 13056500 	        addi a0,a0,6
+  92 1148 97000000 	        call zalloc
+  92      E7800000 
+  93 1150 93020500 	        mv t0,a0
+  94 1154 03358100 	        ld a0,0x8(sp)
+  95 1158 233C5502 	        sd t0,VQ_USED_RING(a0)
+  96              	
+  97 115c 83340500 	        ld s1,COMMON_CONFIG(a0)
+  98              	
+  99 1160 83328502 	        ld t0,VQ_DESCRIPTOR_TABLE(a0)
+ 100 1164 1B031000 	        li t1,0xFFFFFFFF
+ 100      13130302 
+ 100      1303F3FF 
+ 101 1170 33F36200 	        and t1,t0,t1
+ 102 1174 23A06402 	        sw t1,0x20(s1)
+ 103 1178 13D30202 	        srli t1,t0,0x20
+ 104 117c 23A26402 	        sw t1,0x24(s1)
+ 105              	
+ 106 1180 83320503 	        ld t0,VQ_AVAIL_RING(a0)
+ 107 1184 1B031000 	        li t1,0xFFFFFFFF
+ 107      13130302 
+ 107      1303F3FF 
+ 108 1190 33F36200 	        and t1,t0,t1
+ 109 1194 23A46402 	        sw t1,0x28(s1)
+ 110 1198 13D30202 	        srli t1,t0,0x20
+ 111 119c 23A66402 	        sw t1,0x2C(s1)
+ 112              	
+ 113 11a0 83328503 	        ld t0,VQ_USED_RING(a0)
+ 114 11a4 1B031000 	        li t1,0xFFFFFFFF
+ 114      13130302 
+ 114      1303F3FF 
+ 115 11b0 33F36200 	        and t1,t0,t1
+ 116 11b4 23A86402 	        sw t1,0x30(s1)
+ 117 11b8 13D30202 	        srli t1,t0,0x20
+ 118 11bc 23AA6402 	        sw t1,0x34(s1)
+ 119              	
+GAS LISTING src/main.s 			page 39
+
+
+ 120 11c0 83320500 	        ld t0,COMMON_CONFIG(a0)
+ 121 11c4 13031000 	        li t1,0x1
+ 122 11c8 239E6200 	        sh t1,0x1c(t0)
+ 123              	
+ 124 11cc 83340100 	        ld s1,(sp)
+ 125              	        sfree 40
+ 125 11d0 833084FF 	>  ld ra,-8(fp)
+ 125 11d4 033404FF 	>  ld fp,-16(fp)
+ 125 11d8 13018103 	>  addi sp,sp,(40+16)
+ 126 11dc 67800000 	        ret
+  62              	        .section .text.memory
+  63              	.include "memory/memcpy.s"
+   1              	memcpy:
+   2 0000 93020500 	    mv t0,a0
+   3 0004 13830500 	    mv t1,a1
+   4 0008 93031000 	    li t2,0x1
+   5              	    
+   6              	1:
+   7 000c 034E0300 	    lbu t3,(t1)
+   8 0010 2380C201 	    sb t3,(t0)
+   9 0014 638AC300 	    beq t2,a2,1f
+  10 0018 93821200 	    addi t0,t0,0x1
+  11 001c 13031300 	    addi t1,t1,0x1
+  12 0020 93831300 	    addi t2,t2,0x1
+  13 0024 6FF09FFE 	    j 1b
+  14 0028 67800000 	1:  ret
+  64              	.include "memory/heap.s"
+   1              	heap_init:
+   2              	
+   3 002c 97020000 	    la t0,heap_list
+   3      93820200 
+   4 0034 37034000 	    li t1,HEAP_LIST_SIZE
+   5 0038 13132300 	    slli t1,t1,0x2
+   6 003c 13032300 	    addi t1,t1,0x2
+   7 0040 23A06200 	    sw t1,(t0)
+   8 0044 67800000 	    ret
+   9              	
+  10              	malloc:
+  11              	#[ci [ a0 = size in bytes ]
+  12              	    salloc 8
+  12 0048 233C11FE 	>  sd ra,-8(sp)
+  12 004c 233881FE 	>  sd fp,-16(sp)
+  12 0050 13040100 	>  mv fp,sp
+  12 0054 130181FE 	>  addi sp,sp,(-16-8)
+  13 0058 23309100 	    sd s1,(sp)
+  14              	
+  15 005c 93020004 	    li t0,HEAP_BLOCK_SIZE
+  16 0060 33535502 	    divu t1,a0,t0
+  17 0064 B3735502 	    remu t2,a0,t0
+  18 0068 63840300 	    beqz t2,1f
+  19 006c 13031300 	    addi t1,t1,0x1
+  20 0070 13050300 	1:  mv a0,t1
+  21              	
+  22              	    #[ci [ Look for free block in heap list ]
+  23 0074 97040000 	    la s1,heap_list
+  23      93840400 
+  24 007c 13030000 	    li t1,0
+GAS LISTING src/main.s 			page 40
+
+
+  25 0080 B7034000 	    li t2,HEAP_LIST_SIZE
+  26 0084 83E20400 	1:  lwu t0,(s1)
+  27 0088 13FE1200 	    andi t3,t0,0x1 #[g is free
+  28 008c 63160E02 	    bnez t3,2f
+  29 0090 93D21200 	    srli t0,t0,1
+  30 0094 13FE1200 	    andi t3,t0,0x1 #[g is start
+  31 0098 63000E02 	    beqz t3,2f
+  32              	
+  33 009c 93D21200 	    srli t0,t0,1   #[g is large enough
+  34 00a0 63CCA200 	    blt t0,a0,2f
+  35              	
+  36 00a4 93850400 	    mv a1,s1
+  37 00a8 13860200 	    mv a2,t0
+  38 00ac 97000000 	    call heap_alloc
+  38      E7800000 
+  39 00b4 6F000001 	    j 9f
+  40              	
+  41 00b8 93844400 	2:  addi s1,s1,0x4
+  42 00bc 13031300 	    addi t1,t1,0x1
+  43 00c0 E34273FC 	    blt t1,t2,1b    
+  44              	
+  45 00c4 83340100 	9:  ld s1,(sp)
+  46              	    sfree 8
+  46 00c8 833084FF 	>  ld ra,-8(fp)
+  46 00cc 033404FF 	>  ld fp,-16(fp)
+  46 00d0 13018101 	>  addi sp,sp,(8+16)
+  47              	
+  48 00d4 67800000 	    ret
+  49              	
+  50              	zalloc:
+  51              	#[ci [ a0 = size in bytes ]
+  52              	        salloc 8
+  52 00d8 233C11FE 	>  sd ra,-8(sp)
+  52 00dc 233881FE 	>  sd fp,-16(sp)
+  52 00e0 13040100 	>  mv fp,sp
+  52 00e4 130181FE 	>  addi sp,sp,(-16-8)
+  53              	        
+  54 00e8 2330A100 	        sd a0,(sp)
+  55 00ec 97000000 	        call malloc
+  55      E7800000 
+  56 00f4 03330100 	        ld t1,(sp)
+  57 00f8 130E0500 	        mv t3,a0
+  58 00fc 93020000 	        li t0,0x0
+  59              	
+  60 0100 23000E00 	1:      sb zero,(t3)
+  61 0104 130E1E00 	        addi t3,t3,0x1
+  62 0108 93821200 	        addi t0,t0,0x1
+  63 010c E3CA62FE 	        blt t0,t1,1b
+  64              	
+  65              	        sfree 8
+  65 0110 833084FF 	>  ld ra,-8(fp)
+  65 0114 033404FF 	>  ld fp,-16(fp)
+  65 0118 13018101 	>  addi sp,sp,(8+16)
+  66 011c 67800000 	        ret
+  67              	
+  68              	heap_alloc:
+  69              	#[ci [ a0 = size in blk, a1 = heap_list index, a2 = free size ]
+GAS LISTING src/main.s 			page 41
+
+
+  70              	    #[ri [1]
+  71 0120 B302A640 	    sub t0,a2,a0
+  72              	    #[ri [2]
+  73 0124 13132500 	    slli t1,a0,0x2
+  74 0128 33836500 	    add t1,a1,t1
+  75 012c 93932200 	    slli t2,t0,0x2
+  76 0130 13EE2300 	    ori t3,t2,0x2
+  77 0134 2320C301 	    sw t3,(t1)
+  78              	    #[ri [3]
+  79 0138 9382F2FF 	    addi t0,t0,-1
+  80 013c 93922200 	    slli t0,t0,0x2
+  81 0140 33035300 	    add t1,t1,t0
+  82 0144 23207300 	    sw t2,(t1)
+  83              	1:
+  84              	    
+  85              	                    #[ri [4]
+  86 0148 93122500 	    slli t0,a0,0x2  #[ci [ size,1,1 ]
+  87 014c 93823200 	    addi t0,t0,0x3
+  88 0150 23A05500 	    sw t0,(a1)
+  89 0154 1303F5FF 	    addi t1,a0,-1
+  90 0158 630A0300 	    beqz t1,1f
+  91 015c 13132300 	    slli t1,t1,0x2
+  92 0160 3303B300 	    add t1,t1,a1
+  93 0164 93C22200 	    xori t0,t0,0x2
+  94 0168 23205300 	    sw t0,(t1)
+  95              	1:                  #[ri [5]
+  96 016c 97020000 	    la t0,heap_list
+  96      93820200 
+  97 0174 B3825540 	    sub t0,a1,t0
+  98 0178 93D22200 	    srli t0,t0,0x2
+  99 017c 13030004 	    li t1,HEAP_BLOCK_SIZE
+ 100 0180 B3826202 	    mul t0,t0,t1
+ 101 0184 17030000 	    la t1,heap
+ 101      13030300 
+ 102 018c 33856200 	    add a0,t0,t1
+ 103 0190 67800000 	    ret
+ 104              	
+ 105              	free:
+ 106              	#[ci [ a0 = pointer to heap ]
+ 107              	    salloc 16
+ 107 0194 233C11FE 	>  sd ra,-8(sp)
+ 107 0198 233881FE 	>  sd fp,-16(sp)
+ 107 019c 13040100 	>  mv fp,sp
+ 107 01a0 130101FE 	>  addi sp,sp,(-16-16)
+ 108 01a4 23349100 	    sd s1,8(sp)
+ 109              	#[ri [1]
+ 110 01a8 97020000 	    la t0,heap
+ 110      93820200 
+ 111 01b0 B3025540 	    sub t0,a0,t0
+ 112 01b4 13030004 	    li t1,HEAP_BLOCK_SIZE
+ 113 01b8 B3D26202 	    divu t0,t0,t1
+ 114 01bc 93922200 	    slli t0,t0,0x2
+ 115 01c0 17030000 	    la t1,heap_list
+ 115      13030300 
+ 116 01c8 B3846200 	    add s1,t0,t1
+ 117              	#[ri [1.5]
+ 118 01cc 83E20400 	    lwu t0,(s1)
+GAS LISTING src/main.s 			page 42
+
+
+ 119 01d0 13F33200 	    andi t1,t0,0x3
+ 120 01d4 63140300 	    bnez t1,1f
+ 121 01d8 73000000 	    ecall
+ 122              	1:
+ 123              	#[ri [2]
+ 124 01dc 13031000 	    li t1,0x1
+ 125 01e0 33F36240 	    andn t1,t0,t1
+ 126 01e4 23A06400 	    sw t1,(s1)
+ 127              	
+ 128 01e8 13033000 	    li t1,0x3
+ 129 01ec B3F26240 	    andn t0,t0,t1
+ 130 01f0 33835400 	    add t1,s1,t0
+ 131 01f4 9303C3FF 	    addi t2,t1,-4
+ 132 01f8 23A05300 	    sw t0,(t2)
+ 133              	#[ri [3]
+ 134 01fc 03630300 	    lwu t1,(t1)
+ 135 0200 93731300 	    andi t2,t1,0x1
+ 136 0204 63980300 	    bnez t2,1f
+ 137              	#[r 3.1
+ 138 0208 13850400 	    mv a0,s1
+ 139 020c 97000000 	    call heap_merge_free
+ 139      E7800000 
+ 140              	#[ri [4]
+ 141              	1:  
+ 142 0214 97020000 	    la t0,heap_list
+ 142      93820200 
+ 143 021c 63D49202 	    ble s1,t0,1f
+ 144 0220 9382C4FF 	    addi t0,s1,-4
+ 145 0224 83E20200 	    lwu t0,(t0)
+ 146 0228 13F31200 	    andi t1,t0,0x1
+ 147 022c 631C0300 	    bnez t1,1f
+ 148              	#[r 4.1
+ 149 0230 93D22200 	    srli t0,t0,0x2
+ 150 0234 93922200 	    slli t0,t0,0x2
+ 151 0238 33855440 	    sub a0,s1,t0
+ 152 023c 97000000 	    call heap_merge_free
+ 152      E7800000 
+ 153              	1:
+ 154 0244 83348100 	    ld s1,8(sp)
+ 155              	    sfree 16
+ 155 0248 833084FF 	>  ld ra,-8(fp)
+ 155 024c 033404FF 	>  ld fp,-16(fp)
+ 155 0250 13010102 	>  addi sp,sp,(16+16)
+ 156 0254 67800000 	    ret
+ 157              	
+ 158              	heap_merge_free:
+ 159              	#[ci [ a0 = Heap_list pointer ]
+ 160 0258 83620500 	    lwu t0,(a0)
+ 161 025c 13033000 	    li t1,0x3
+ 162 0260 B3F26240 	    andn t0,t0,t1
+ 163 0264 33035500 	    add t1,a0,t0
+ 164 0268 83630300 	    lwu t2,(t1)
+ 165              	    
+ 166 026c 23200300 	    sw zero,(t1)
+ 167 0270 232E03FE 	    sw zero,-4(t1)
+ 168              	    
+ 169 0274 93D32300 	    srli t2,t2,0x2
+GAS LISTING src/main.s 			page 43
+
+
+ 170 0278 93932300 	    slli t2,t2,0x2
+ 171              	    
+ 172 027c 83620500 	    lwu t0,(a0)
+ 173 0280 B3827200 	    add t0,t0,t2
+ 174 0284 23205500 	    sw t0,(a0)
+ 175              	#[ri [ 2.1 ]
+ 176 0288 13033000 	    li t1,0x3
+ 177 028c B3F26240 	    andn t0,t0,t1
+ 178 0290 B3035500 	    add t2,a0,t0
+ 179 0294 9383C3FF 	    addi t2,t2,-4
+ 180 0298 13032000 	    li t1,0x2
+ 181 029c 33F36240 	    andn t1,t0,t1
+ 182 02a0 23A06300 	    sw t1,(t2)
+ 183 02a4 67800000 	    ret
+ 184              	
+ 185              	
+  65              	        .section .text.machine
+  66              	.include "machine.s"
+   1              	machine_init:
+   2 0000 97020000 	    la t0, Exception_vector
+   2      93820200 
+   3 0008 13032000 	    li t1,0x2
+   4 000c B3F26240 	    andn t0,t0,t1
+   5 0010 93E21200 	    ori t0,t0,0x1
+   6 0014 73905230 	    csrw mtvec, t0
+   7              	
+   8 0018 F3220030 	    csrr t0,mstatus
+   9 001c 93E28200 	    ori t0,t0,0x8
+  10 0020 73900230 	    csrw mstatus,t0
+  11              	
+  12 0024 F3224030 	    csrr t0,mie
+  13              	
+  14 0028 37130000 	    li t1,0x800
+  14      1B030380 
+  15 0030 B3E26200 	    or t0,t0,t1
+  16              	    
+  17 0034 73904230 	    csrw mie,t0
+  18              	    
+  19 0038 67800000 	    ret
+  20              	    
+  21 003c 13000000 	.align 3
+  22              	Exception_vector:
+  23 0040 6F000004 	    j Exception_handler
+  24 0044 6F00C003 	    j Exception_handler
+  25 0048 6F008003 	    j Exception_handler
+  26 004c 6F004003 	    j Exception_handler
+  27 0050 6F000003 	    j Exception_handler
+  28 0054 6F00C002 	    j Exception_handler
+  29 0058 6F008002 	    j Exception_handler
+  30 005c 6F004002 	    j Exception_handler
+  31 0060 6F000002 	    j Exception_handler
+  32 0064 6F00C001 	    j Exception_handler
+  33 0068 6F008001 	    j Exception_handler
+  34 006c 6F000031 	    j External_Interrupt_Handler
+  35 0070 6F000001 	    j Exception_handler
+  36 0074 6F00C000 	    j Exception_handler
+  37 0078 6F008000 	    j Exception_handler
+GAS LISTING src/main.s 			page 44
+
+
+  38 007c 6F004000 	    j Exception_handler
+  39              	
+  40              	Exception_handler:
+  41              	    save_all
+  41 0080 233821F0 	>  sd x2,-240(sp)
+  41 0084 130181F0 	>  addi sp,sp,-248
+  41 0088 23301100 	>  sd x1,(sp)
+  41 008c 23383100 	>  sd x3,16(sp)
+  41 0090 233C4100 	>  sd x4,24(sp)
+  41 0094 23305102 	>  sd x5,32(sp)
+  41 0098 23346102 	>  sd x6,40(sp)
+  41 009c 23387102 	>  sd x7,48(sp)
+  41 00a0 233C8102 	>  sd x8,56(sp)
+  41 00a4 23309104 	>  sd x9,64(sp)
+  41 00a8 2334A104 	>  sd x10,72(sp)
+  41 00ac 2338B104 	>  sd x11,80(sp)
+  41 00b0 233CC104 	>  sd x12,88(sp)
+  41 00b4 2330D106 	>  sd x13,96(sp)
+  41 00b8 2334E106 	>  sd x14,104(sp)
+  41 00bc 2338F106 	>  sd x15,112(sp)
+  41 00c0 233C0107 	>  sd x16,120(sp)
+  41 00c4 23301109 	>  sd x17,128(sp)
+  41 00c8 23342109 	>  sd x18,136(sp)
+  41 00cc 23383109 	>  sd x19,144(sp)
+  41 00d0 233C4109 	>  sd x20,152(sp)
+  41 00d4 2330510B 	>  sd x21,160(sp)
+  41 00d8 2334610B 	>  sd x22,168(sp)
+  41 00dc 2338710B 	>  sd x23,176(sp)
+  41 00e0 233C810B 	>  sd x24,184(sp)
+  41 00e4 2330910D 	>  sd x25,192(sp)
+  41 00e8 2334A10D 	>  sd x26,200(sp)
+  41 00ec 2338B10D 	>  sd x27,208(sp)
+  41 00f0 233CC10D 	>  sd x28,216(sp)
+  41 00f4 2330D10F 	>  sd x29,224(sp)
+  41 00f8 2334E10F 	>  sd x30,232(sp)
+  41 00fc 2338F10F 	>  sd x31,240(sp)
+  42 0100 97000000 	    call print_newline
+  42      E7800000 
+  43              	#[ci [                  Print Regs                  ]
+  44              	
+  45 0108 17050000 	    la a0,machine_fault_cause_str
+  45      13050500 
+  46 0110 97000000 	    call print_string
+  46      E7800000 
+  47              	
+  48 0118 73232034 	    csrr t1,mcause
+  49 011c 93021000 	1:  li t0,1
+  50 0120 63986200 	    bne t0,t1,1f
+  51 0124 17050000 	    la a0,machine_fault_E1_str
+  51      13050500 
+  52 012c 6F00000C 	    j 2f
+  53 0130 93022000 	1:  li t0,2
+  54 0134 63986200 	    bne t0,t1,1f
+  55 0138 17050000 	    la a0,machine_fault_E2_str
+  55      13050500 
+  56 0140 6F00C00A 	    j 2f
+  57 0144 93023000 	1:  li t0,3
+GAS LISTING src/main.s 			page 45
+
+
+  58 0148 63986200 	    bne t0,t1,1f
+  59 014c 17050000 	    la a0,machine_fault_E3_str
+  59      13050500 
+  60 0154 6F008009 	    j 2f
+  61 0158 93025000 	1:  li t0,5
+  62 015c 63986200 	    bne t0,t1,1f
+  63 0160 17050000 	    la a0,machine_fault_E5_str
+  63      13050500 
+  64 0168 6F004008 	    j 2f
+  65 016c 93027000 	1:  li t0,7
+  66 0170 63986200 	    bne t0,t1,1f
+  67 0174 17050000 	    la a0,machine_fault_E7_str
+  67      13050500 
+  68 017c 6F000007 	    j 2f
+  69 0180 93028000 	1:  li t0,8
+  70 0184 63986200 	    bne t0,t1,1f
+  71 0188 17050000 	    la a0,machine_fault_E8_str
+  71      13050500 
+  72 0190 6F00C005 	    j 2f
+  73 0194 9302B000 	1:  li t0,11
+  74 0198 63986200 	    bne t0,t1,1f
+  75 019c 17050000 	    la a0,machine_fault_E11_str
+  75      13050500 
+  76 01a4 6F008004 	    j 2f
+  77 01a8 93028001 	1:  li t0,24
+  78 01ac 63986200 	    bne t0,t1,1f
+  79 01b0 17050000 	    la a0,machine_fault_E24_str
+  79      13050500 
+  80 01b8 6F004003 	    j 2f
+  81 01bc 93029001 	1:  li t0,25
+  82 01c0 63986200 	    bne t0,t1,1f
+  83 01c4 17050000 	    la a0,machine_fault_E25_str
+  83      13050500 
+  84 01cc 6F000002 	    j 2f
+  85 01d0 9B02F0FF 	1:  li t0,0x800000000000000B
+  85      9392F203 
+  85      9382B200 
+  86 01dc 63986200 	    bne t0,t1,1f
+  87 01e0 17050000 	    la a0,machine_fault_uart_interupt_str
+  87      13050500 
+  88 01e8 6F004000 	    j 2f
+  89              	1:
+  90              	2:
+  91 01ec 97000000 	    call print_string
+  91      E7800000 
+  92 01f4 97000000 	    call print_newline
+  92      E7800000 
+  93              	
+  94 01fc 73251034 	    csrr a0,mepc
+  95 0200 130181FF 	    addi sp,sp,-8
+  96 0204 2330A100 	    sd a0,(sp)
+  97 0208 93050100 	    mv a1,sp
+  98 020c 17050000 	    la a0,machine_fault_mepc_fstr
+  98      13050500 
+  99 0214 97000000 	    call printf
+  99      E7800000 
+ 100 021c 13018100 	    addi sp,sp,8
+GAS LISTING src/main.s 			page 46
+
+
+ 101              	
+ 102 0220 17050000 	    la a0,machine_fault_register_str
+ 102      13050500 
+ 103 0228 97000000 	    call print_string    
+ 103      E7800000 
+ 104              	
+ 105 0230 93040000 	    li s1,0
+ 106 0234 1309F001 	    li s2,31
+ 107              	    
+ 108 0238 93993400 	1:  slli s3,s1,0x3 
+ 109 023c 330A3101 	    add s4,sp,s3
+ 110 0240 03350A00 	    ld a0,(s4)
+ 111 0244 630C0502 	    beqz a0,2f
+ 112 0248 130181FE 	    addi sp,sp,-24
+ 113              	
+ 114 024c 97020000 	    la t0,machine_regs
+ 114      93820200 
+ 115 0254 B3823201 	    add t0,t0,s3
+ 116              	    
+ 117 0258 23305100 	    sd t0,(sp)
+ 118 025c 2334A100 	    sd a0,8(sp)
+ 119 0260 2338A100 	    sd a0,16(sp)
+ 120              	    
+ 121 0264 17050000 	    la a0,machine_fault_register_fstr
+ 121      13050500 
+ 122 026c 93050100 	    mv a1,sp
+ 123              	
+ 124 0270 97000000 	    call printf
+ 124      E7800000 
+ 125              	
+ 126 0278 13018101 	    addi sp,sp,24
+ 127              	    
+ 128 027c 93841400 	2:  addi s1,s1,1
+ 129 0280 E3CC24FB 	    blt s1,s2,1b
+ 130              	
+ 131 0284 97000000 	    call print_newline
+ 131      E7800000 
+ 132              	
+ 133 028c 17050000 	    la a0,machine_fault_heap_str
+ 133      13050500 
+ 134 0294 97000000 	    call print_string
+ 134      E7800000 
+ 135              	
+ 136 029c 97000000 	    call machine_print_heap
+ 136      E7800000 
+ 137 02a4 97000000 	    call print_newline
+ 137      E7800000 
+ 138              	
+ 139 02ac 17050000 	    la a0,machine_fault_stack_str
+ 139      13050500 
+ 140 02b4 97000000 	    call print_string
+ 140      E7800000 
+ 141              	
+ 142 02bc 13050100 	    mv a0,sp
+ 143 02c0 97000000 	    call machine_print_stack
+ 143      E7800000 
+ 144              	
+GAS LISTING src/main.s 			page 47
+
+
+ 145              	
+ 146 02c8 F3221034 	    csrr t0,mepc
+ 147 02cc 93824200 	    addi t0,t0,0x4
+ 148 02d0 73901234 	    csrw mepc,t0
+ 149              	
+ 150 02d4 F3222034 	    csrr t0,mcause
+ 151 02d8 13033000 	    li t1,0x3
+ 152 02dc 63906202 	    bne t0,t1,2f
+ 153              	
+ 154 02e0 97000000 	1:  call uart_getc
+ 154      E7800000 
+ 155 02e8 E30C05FE 	    beqz a0,1b
+ 156 02ec 9302D000 	    li t0,'
+ 157 02f0 E31855FE 	'
+ 158 02f4 97000000 	    bne a0,t0,1b
+ 158      E7800000 
+ 159              	    call print_newline
+ 160              	    
+ 160 02fc 83300100 	>  ld x1,(sp)
+ 160 0300 83310101 	>  ld x3,16(sp)
+ 160 0304 03328101 	>  ld x4,24(sp)
+ 160 0308 83320102 	>  ld x5,32(sp)
+ 160 030c 03338102 	>  ld x6,40(sp)
+ 160 0310 83330103 	>  ld x7,48(sp)
+ 160 0314 03348103 	>  ld x8,56(sp)
+ 160 0318 83340104 	>  ld x9,64(sp)
+ 160 031c 03358104 	>  ld x10,72(sp)
+ 160 0320 83350105 	>  ld x11,80(sp)
+ 160 0324 03368105 	>  ld x12,88(sp)
+ 160 0328 83360106 	>  ld x13,96(sp)
+ 160 032c 03378106 	>  ld x14,104(sp)
+ 160 0330 83370107 	>  ld x15,112(sp)
+ 160 0334 03388107 	>  ld x16,120(sp)
+ 160 0338 83380108 	>  ld x17,128(sp)
+ 160 033c 03398108 	>  ld x18,136(sp)
+ 160 0340 83390109 	>  ld x19,144(sp)
+ 160 0344 033A8109 	>  ld x20,152(sp)
+ 160 0348 833A010A 	>  ld x21,160(sp)
+ 160 034c 033B810A 	>  ld x22,168(sp)
+ 160 0350 833B010B 	>  ld x23,176(sp)
+ 160 0354 033C810B 	>  ld x24,184(sp)
+ 160 0358 833C010C 	>  ld x25,192(sp)
+ 160 035c 033D810C 	>  ld x26,200(sp)
+ 160 0360 833D010D 	>  ld x27,208(sp)
+ 160 0364 033E810D 	>  ld x28,216(sp)
+ 160 0368 833E010E 	>  ld x29,224(sp)
+ 160 036c 033F810E 	>  ld x30,232(sp)
+ 160 0370 833F010F 	>  ld x31,240(sp)
+ 160 0374 03318100 	>  ld x2,8(sp)
+ 161 0378 73002030 	2:  load_all
+ 162              	    mret
+ 163              	
+ 164              	External_Interrupt_Handler:
+ 164 037c 233821F0 	>  sd x2,-240(sp)
+ 164 0380 130181F0 	>  addi sp,sp,-248
+ 164 0384 23301100 	>  sd x1,(sp)
+ 164 0388 23383100 	>  sd x3,16(sp)
+GAS LISTING src/main.s 			page 48
+
+
+ 164 038c 233C4100 	>  sd x4,24(sp)
+ 164 0390 23305102 	>  sd x5,32(sp)
+ 164 0394 23346102 	>  sd x6,40(sp)
+ 164 0398 23387102 	>  sd x7,48(sp)
+ 164 039c 233C8102 	>  sd x8,56(sp)
+ 164 03a0 23309104 	>  sd x9,64(sp)
+ 164 03a4 2334A104 	>  sd x10,72(sp)
+ 164 03a8 2338B104 	>  sd x11,80(sp)
+ 164 03ac 233CC104 	>  sd x12,88(sp)
+ 164 03b0 2330D106 	>  sd x13,96(sp)
+ 164 03b4 2334E106 	>  sd x14,104(sp)
+ 164 03b8 2338F106 	>  sd x15,112(sp)
+ 164 03bc 233C0107 	>  sd x16,120(sp)
+ 164 03c0 23301109 	>  sd x17,128(sp)
+ 164 03c4 23342109 	>  sd x18,136(sp)
+ 164 03c8 23383109 	>  sd x19,144(sp)
+ 164 03cc 233C4109 	>  sd x20,152(sp)
+ 164 03d0 2330510B 	>  sd x21,160(sp)
+ 164 03d4 2334610B 	>  sd x22,168(sp)
+ 164 03d8 2338710B 	>  sd x23,176(sp)
+ 164 03dc 233C810B 	>  sd x24,184(sp)
+ 164 03e0 2330910D 	>  sd x25,192(sp)
+ 164 03e4 2334A10D 	>  sd x26,200(sp)
+ 164 03e8 2338B10D 	>  sd x27,208(sp)
+ 164 03ec 233CC10D 	>  sd x28,216(sp)
+ 164 03f0 2330D10F 	>  sd x29,224(sp)
+ 164 03f4 2334E10F 	>  sd x30,232(sp)
+ 164 03f8 2338F10F 	>  sd x31,240(sp)
+ 165 03fc 13050000 	    save_all
+ 166 0400 97000000 	    li a0,0x0
+ 166      E7800000 
+ 167 0408 13132500 	    call plic_claim_interrupt
+ 168 040c 97020000 	    slli t1,a0,0x2
+ 168      93820201 
+ 169 0414 B3826200 	    la t0,1f
+ 170 0418 67800200 	    add t0,t0,t1
+ 171              	    jalr zero,t0,0x0
+ 172 041c 6F000008 	    
+ 173 0420 6F00C007 	1:  j External_Interrupt_Handler_end
+ 174 0424 6F008007 	    j External_Interrupt_Handler_end
+ 175 0428 6F004007 	    j External_Interrupt_Handler_end
+ 176 042c 6F000007 	    j External_Interrupt_Handler_end
+ 177 0430 6F00C006 	    j External_Interrupt_Handler_end
+ 178 0434 6F008006 	    j External_Interrupt_Handler_end
+ 179 0438 6F004006 	    j External_Interrupt_Handler_end
+ 180 043c 6F000006 	    j External_Interrupt_Handler_end
+ 181 0440 6F00C005 	    j External_Interrupt_Handler_end
+ 182              	    j External_Interrupt_Handler_end
+ 183 0444 6F00C02D 	    
+ 184              	    j uart_interrupt
+ 185 0448 6F004005 	    
+ 186 044c 6F000005 	    j External_Interrupt_Handler_end
+ 187 0450 6F00C004 	    j External_Interrupt_Handler_end
+ 188 0454 6F008004 	    j External_Interrupt_Handler_end
+ 189 0458 6F004004 	    j External_Interrupt_Handler_end
+ 190 045c 6F000004 	    j External_Interrupt_Handler_end
+ 191 0460 6F00C003 	    j External_Interrupt_Handler_end
+GAS LISTING src/main.s 			page 49
+
+
+ 192 0464 6F008003 	    j External_Interrupt_Handler_end
+ 193 0468 6F004003 	    j External_Interrupt_Handler_end
+ 194 046c 6F000003 	    j External_Interrupt_Handler_end
+ 195 0470 6F00C002 	    j External_Interrupt_Handler_end
+ 196 0474 6F008002 	    j External_Interrupt_Handler_end
+ 197 0478 6F004002 	    j External_Interrupt_Handler_end
+ 198 047c 6F000002 	    j External_Interrupt_Handler_end
+ 199 0480 6F00C001 	    j External_Interrupt_Handler_end
+ 200 0484 6F008001 	    j External_Interrupt_Handler_end
+ 201 0488 6F004001 	    j External_Interrupt_Handler_end
+ 202 048c 6F000001 	    j External_Interrupt_Handler_end
+ 203 0490 6F00C000 	    j External_Interrupt_Handler_end
+ 204 0494 6F008000 	    j External_Interrupt_Handler_end
+ 205 0498 6F004000 	    j External_Interrupt_Handler_end
+ 206              	    j External_Interrupt_Handler_end
+ 207              	
+ 208              	External_Interrupt_Handler_end:
+ 208 049c 83300100 	>  ld x1,(sp)
+ 208 04a0 83310101 	>  ld x3,16(sp)
+ 208 04a4 03328101 	>  ld x4,24(sp)
+ 208 04a8 83320102 	>  ld x5,32(sp)
+ 208 04ac 03338102 	>  ld x6,40(sp)
+ 208 04b0 83330103 	>  ld x7,48(sp)
+ 208 04b4 03348103 	>  ld x8,56(sp)
+ 208 04b8 83340104 	>  ld x9,64(sp)
+ 208 04bc 03358104 	>  ld x10,72(sp)
+ 208 04c0 83350105 	>  ld x11,80(sp)
+ 208 04c4 03368105 	>  ld x12,88(sp)
+ 208 04c8 83360106 	>  ld x13,96(sp)
+ 208 04cc 03378106 	>  ld x14,104(sp)
+ 208 04d0 83370107 	>  ld x15,112(sp)
+ 208 04d4 03388107 	>  ld x16,120(sp)
+ 208 04d8 83380108 	>  ld x17,128(sp)
+ 208 04dc 03398108 	>  ld x18,136(sp)
+ 208 04e0 83390109 	>  ld x19,144(sp)
+ 208 04e4 033A8109 	>  ld x20,152(sp)
+ 208 04e8 833A010A 	>  ld x21,160(sp)
+ 208 04ec 033B810A 	>  ld x22,168(sp)
+ 208 04f0 833B010B 	>  ld x23,176(sp)
+ 208 04f4 033C810B 	>  ld x24,184(sp)
+ 208 04f8 833C010C 	>  ld x25,192(sp)
+ 208 04fc 033D810C 	>  ld x26,200(sp)
+ 208 0500 833D010D 	>  ld x27,208(sp)
+ 208 0504 033E810D 	>  ld x28,216(sp)
+ 208 0508 833E010E 	>  ld x29,224(sp)
+ 208 050c 033F810E 	>  ld x30,232(sp)
+ 208 0510 833F010F 	>  ld x31,240(sp)
+ 208 0514 03318100 	>  ld x2,8(sp)
+ 209 0518 73002030 	    load_all
+ 210              	    mret
+ 211              	
+ 212              	
+ 213              	machine_print_heap:
+ 213 051c 233C11FE 	>  sd ra,-8(sp)
+ 213 0520 233881FE 	>  sd fp,-16(sp)
+ 213 0524 13040100 	>  mv fp,sp
+ 213 0528 130181FD 	>  addi sp,sp,(-16-24)
+GAS LISTING src/main.s 			page 50
+
+
+ 214 052c 23309100 	    salloc 24
+ 215 0530 23342101 	    sd s1,(sp)
+ 216 0534 23383101 	    sd s2,8(sp)
+ 217              	    sd s3,16(sp)
+ 218 0538 97040000 	
+ 218      93840400 
+ 219 0540 13090000 	    la s1,heap_list
+ 220 0544 B7094000 	    li s2,0x0
+ 221              	    li s3,HEAP_LIST_SIZE
+ 222 0548 83E20400 	    
+ 223 054c 13F32200 	1:  lwu t0,(s1)
+ 224 0550 630C0304 	    andi t1,t0,0x2
+ 225              	    beqz t1,2f
+ 226 0554 130101FE 	    
+ 227              	    addi sp,sp,-32
+ 228 0558 17050000 	    
+ 228      13050500 
+ 229 0560 93050100 	    la a0,machine_heap_fstr
+ 230              	    mv a1,sp
+ 231 0564 13F31200 	
+ 232 0568 63080300 	    andi t1,t0,0x1
+ 233 056c 970F0000 	    beqz t1,3f
+ 233      938F0F00 
+ 234 0574 6F00C000 	    la t6,machine_heap_alloc_str
+ 235 0578 970F0000 	    j 4f
+ 235      938F0F00 
+ 236 0580 2330F101 	3:  la t6,machine_heap_free_str
+ 237 0584 23349100 	4:  sd t6,(sp)
+ 238 0588 93D22200 	    sd s1,8(sp)
+ 239 058c 23385100 	    srli t0,t0,0x2
+ 240 0590 93030004 	    sd t0,16(sp)
+ 241 0594 B3827202 	    li t2,HEAP_BLOCK_SIZE
+ 242 0598 233C5100 	    mul t0,t0,t2
+ 243              	    sd t0,24(sp)
+ 244 059c 97000000 	    
+ 244      E7800000 
+ 245              	    call printf
+ 246 05a4 13010102 	    
+ 247              	    addi sp,sp,32
+ 248 05a8 93844400 	    
+ 249 05ac 13091900 	2:  addi s1,s1,0x4
+ 250 05b0 E34C39F9 	    addi s2,s2,0x1
+ 251              	    blt s2,s3,1b  
+ 252 05b4 83340100 	
+ 253 05b8 03398100 	    ld s1,(sp)
+ 254 05bc 83390101 	    ld s2,8(sp)
+ 255              	    ld s3,16(sp)
+ 255 05c0 833084FF 	>  ld ra,-8(fp)
+ 255 05c4 033404FF 	>  ld fp,-16(fp)
+ 255 05c8 13018102 	>  addi sp,sp,(24+16)
+ 256 05cc 67800000 	    sfree 24
+ 257              	    ret
+ 258              	
+ 259              	machine_wfi:
+ 259 05d0 233C11FE 	>  sd ra,-8(sp)
+ 259 05d4 233881FE 	>  sd fp,-16(sp)
+ 259 05d8 13040100 	>  mv fp,sp
+GAS LISTING src/main.s 			page 51
+
+
+ 259 05dc 130101FF 	>  addi sp,sp,(-16-0)
+ 260              	    salloc 0
+ 261 05e0 97000000 	
+ 261      E7800000 
+ 262              	    call bounce
+ 263              	
+ 263 05e8 833084FF 	>  ld ra,-8(fp)
+ 263 05ec 033404FF 	>  ld fp,-16(fp)
+ 263 05f0 13010101 	>  addi sp,sp,(0+16)
+ 264 05f4 67800000 	    sfree 0
+ 265              	    ret
+ 266              	
+ 267              	machine_print_stack:
+ 267 05f8 233C11FE 	>  sd ra,-8(sp)
+ 267 05fc 233881FE 	>  sd fp,-16(sp)
+ 267 0600 13040100 	>  mv fp,sp
+ 267 0604 130101FF 	>  addi sp,sp,(-16-0)
+ 268              	    salloc 0
+ 269              	
+ 270 0608 83348500 	
+ 271 060c 03398503 	    ld s1,0x8(a0)
+ 272 0610 93090000 	    ld s2,0x38(a0)
+ 273              	    li s3,0x0
+ 274 0614 83B20400 	
+ 275 0618 130101FF 	1:  ld t0,(s1)
+ 276 061c 23303101 	    addi sp,sp,-0x10
+ 277 0620 23345100 	    sd s3,(sp)
+ 278 0624 17050000 	    sd t0,0x8(sp)
+ 278      13050500 
+ 279 062c 93050100 	    la a0,machine_stack_val_fstr
+ 280 0630 97000000 	    mv a1,sp
+ 280      E7800000 
+ 281 0638 13010101 	    call printf
+ 282              	    addi sp,sp,0x10
+ 283 063c 93848400 	
+ 284 0640 93898900 	    addi s1,s1,0x8
+ 285 0644 E3C824FD 	    addi s3,s3,0x8
+ 286              	    blt s1,s2,1b
+ 287              	
+ 287 0648 833084FF 	>  ld ra,-8(fp)
+ 287 064c 033404FF 	>  ld fp,-16(fp)
+ 287 0650 13010101 	>  addi sp,sp,(0+16)
+ 288 0654 67800000 	    sfree 0
+ 289              	    ret
+  67              	        .section .text.bios
+  68              	.include "bios.s"
+   1              	bios_handle_input:
+   2              	    salloc 0
+   2 0000 233C11FE 	>  sd ra,-8(sp)
+   2 0004 233881FE 	>  sd fp,-16(sp)
+   2 0008 13040100 	>  mv fp,sp
+   2 000c 130101FF 	>  addi sp,sp,(-16-0)
+   3              	    
+   4 0010 97000000 	    call uart_get
+   4      E7800000 
+   5              	
+   6 0018 93028000 	    li t0,0x8
+GAS LISTING src/main.s 			page 52
+
+
+   7 001c 63165500 	    bne a0,t0,2f
+   8 0020 73001000 	    ebreak
+   9 0024 6F004006 	    j 1f
+  10 0028 9302B001 	2:  li t0,0x1B
+  11 002c 63165500 	    bne a0,t0,2f
+  12 0030 97000000 	    call bios_escape_sequence
+  12      E7800000 
+  13 0038 97000000 	2:  call uart_putc    
+  13      E7800000 
+  14              	    sfree 0
+  14 0040 833084FF 	>  ld ra,-8(fp)
+  14 0044 033404FF 	>  ld fp,-16(fp)
+  14 0048 13010101 	>  addi sp,sp,(0+16)
+  15 004c 67800000 	    ret
+  16              	
+  17              	bios_escape_sequence:
+  18              	    salloc 0
+  18 0050 233C11FE 	>  sd ra,-8(sp)
+  18 0054 233881FE 	>  sd fp,-16(sp)
+  18 0058 13040100 	>  mv fp,sp
+  18 005c 130101FF 	>  addi sp,sp,(-16-0)
+  19              	    
+  20 0060 97000000 	    call uart_get
+  20      E7800000 
+  21 0068 9302F004 	    li t0,0x4F #[ri [O]
+  22 006c 63165502 	    bne a0,t0,2f
+  23 0070 97000000 	    call uart_get
+  23      E7800000 
+  24 0078 93020005 	    li t0,0x50 #[ri [P]
+  25 007c 63165500 	    bne a0,t0,1f
+  26 0080 97000000 	    call bios_write_disk
+  26      E7800000 
+  27 0088 93021005 	1:  li t0,0x51 #[ri [R]
+  28 008c 63165500 	    bne a0,t0,2f
+  29 0090 97000000 	    call bios_read_disk
+  29      E7800000 
+  30              	2:    
+  31              	    sfree 0
+  31 0098 833084FF 	>  ld ra,-8(fp)
+  31 009c 033404FF 	>  ld fp,-16(fp)
+  31 00a0 13010101 	>  addi sp,sp,(0+16)
+  32 00a4 67800000 	    ret
+  33              	
+  34              	bios_write_disk:
+  35              	    salloc 8
+  35 00a8 233C11FE 	>  sd ra,-8(sp)
+  35 00ac 233881FE 	>  sd fp,-16(sp)
+  35 00b0 13040100 	>  mv fp,sp
+  35 00b4 130181FE 	>  addi sp,sp,(-16-8)
+  36              	
+  37 00b8 17050000 	    la a0,bios_store_str
+  37      13050500 
+  38 00c0 97000000 	    call print_string
+  38      E7800000 
+  39 00c8 17050000 	    la a0,bios_addr_str    
+  39      13050500 
+  40 00d0 97000000 	    call print_string
+GAS LISTING src/main.s 			page 53
+
+
+  40      E7800000 
+  41 00d8 97000000 	    call bios_input_hex
+  41      E7800000 
+  42 00e0 2330A100 	    sd a0,(sp)
+  43 00e4 17050000 	    la a0,bios_input_buffer
+  43      13050500 
+  44 00ec 97000000 	    call bios_input_string
+  44      E7800000 
+  45 00f4 13060500 	    mv a2,a0
+  46 00f8 03350100 	    ld a0,(sp)
+  47 00fc 97050000 	    la a1,bios_input_buffer
+  47      93850500 
+  48 0104 97000000 	    call ivshmem_sb
+  48      E7800000 
+  49 010c 97000000 	    call print_newline
+  49      E7800000 
+  50              	
+  51              	    sfree 8   
+  51 0114 833084FF 	>  ld ra,-8(fp)
+  51 0118 033404FF 	>  ld fp,-16(fp)
+  51 011c 13018101 	>  addi sp,sp,(8+16)
+  52 0120 67800000 	    ret
+  53              	
+  54              	bios_read_disk:
+  55              	    salloc 8
+  55 0124 233C11FE 	>  sd ra,-8(sp)
+  55 0128 233881FE 	>  sd fp,-16(sp)
+  55 012c 13040100 	>  mv fp,sp
+  55 0130 130181FE 	>  addi sp,sp,(-16-8)
+  56              	
+  57 0134 17050000 	    la a0,bios_load_str
+  57      13050500 
+  58 013c 97000000 	    call print_string
+  58      E7800000 
+  59 0144 17050000 	    la a0,bios_addr_str 
+  59      13050500 
+  60 014c 97000000 	    call print_string
+  60      E7800000 
+  61 0154 97000000 	    call bios_input_hex
+  61      E7800000 
+  62 015c 2330A100 	    sd a0,(sp)
+  63 0160 17050000 	    la a0,bios_len_str
+  63      13050500 
+  64 0168 97000000 	    call print_string
+  64      E7800000 
+  65 0170 97000000 	    call bios_input_int
+  65      E7800000 
+  66 0178 13060500 	    mv a2,a0
+  67 017c 03350100 	    ld a0,(sp)
+  68 0180 97050000 	    la a1,bios_input_buffer
+  68      93850500 
+  69 0188 97000000 	    call ivshmem_lbu
+  69      E7800000 
+  70              	
+  71 0190 B302B600 	    add t0,a2,a1
+  72 0194 23800200 	    sb zero,(t0)
+  73              	    
+GAS LISTING src/main.s 			page 54
+
+
+  74 0198 17050000 	    la a0,bios_input_buffer
+  74      13050500 
+  75 01a0 97000000 	    call print_string    
+  75      E7800000 
+  76 01a8 97000000 	    call print_newline
+  76      E7800000 
+  77              	    sfree 8   
+  77 01b0 833084FF 	>  ld ra,-8(fp)
+  77 01b4 033404FF 	>  ld fp,-16(fp)
+  77 01b8 13018101 	>  addi sp,sp,(8+16)
+  78 01bc 67800000 	    ret
+  79              	
+  80              	
+  81              	bios_input_hex:
+  82              	    salloc 16
+  82 01c0 233C11FE 	>  sd ra,-8(sp)
+  82 01c4 233881FE 	>  sd fp,-16(sp)
+  82 01c8 13040100 	>  mv fp,sp
+  82 01cc 130101FE 	>  addi sp,sp,(-16-16)
+  83 01d0 23303101 	    sd s3,(sp)
+  84 01d4 23344101 	    sd s4,8(sp)
+  85              	
+  86 01d8 93090000 	    mv s3, zero
+  87 01dc 97000000 	1:  call uart_get
+  87      E7800000 
+  88              	    
+  89 01e4 130A0500 	    mv s4,a0
+  90              	
+  91 01e8 93028000 	    li t0,0x8
+  92 01ec 631E5500 	    bne a0,t0,5f
+  93 01f0 93D94900 	    srli s3,s3,0x4
+  94 01f4 17050000 	    la a0,bios_del_char
+  94      13050500 
+  95 01fc 97000000 	    call print_string
+  95      E7800000 
+  96 0204 6FF09FFD 	    j 1b
+  97              	    
+  98 0208 9302D000 	5:  li t0,0xd
+  99 020c 63085504 	    beq a0,t0,2f
+ 100 0210 9302A000 	    li t0,0xa
+ 101 0214 63045504 	    beq a0,t0,2f
+ 102              	
+ 103 0218 93020003 	    li t0,0x30
+ 104 021c E34055FC 	    blt a0,t0,1b
+ 105 0220 9302A003 	    li t0,0x3a
+ 106 0224 634E5500 	    blt a0,t0,3f
+ 107 0228 93021004 	    li t0,0x41
+ 108 022c E34855FA 	    blt a0,t0,1b
+ 109 0230 93027004 	    li t0,0x47
+ 110 0234 63445500 	    blt a0,t0,4f
+ 111 0238 6FF05FFA 	    j 1b    
+ 112 023c 130595FF 	4:  addi a0,a0,-7
+ 113 0240 130505FD 	3:  addi a0,a0,-0x30
+ 114 0244 93994900 	    slli s3,s3,0x4
+ 115 0248 B389A900 	    add s3,s3,a0
+ 116 024c 13050A00 	    mv a0,s4
+ 117 0250 97000000 	    call uart_putc
+GAS LISTING src/main.s 			page 55
+
+
+ 117      E7800000 
+ 118 0258 6FF05FF8 	    j 1b
+ 119              	    
+ 120 025c 97000000 	2:  call print_newline
+ 120      E7800000 
+ 121 0264 13850900 	    mv a0,s3
+ 122              	
+ 123 0268 033A8100 	    ld s4,8(sp)
+ 124 026c 83390100 	    ld s3,(sp)
+ 125              	    sfree 16
+ 125 0270 833084FF 	>  ld ra,-8(fp)
+ 125 0274 033404FF 	>  ld fp,-16(fp)
+ 125 0278 13010102 	>  addi sp,sp,(16+16)
+ 126 027c 67800000 	    ret
+ 127              	
+ 128              	bios_input_int:
+ 129              	    salloc 16
+ 129 0280 233C11FE 	>  sd ra,-8(sp)
+ 129 0284 233881FE 	>  sd fp,-16(sp)
+ 129 0288 13040100 	>  mv fp,sp
+ 129 028c 130101FE 	>  addi sp,sp,(-16-16)
+ 130 0290 23303101 	    sd s3,(sp)
+ 131 0294 23344101 	    sd s4,8(sp)
+ 132              	
+ 133 0298 93090000 	    mv s3, zero
+ 134 029c 97000000 	1:  call uart_get
+ 134      E7800000 
+ 135              	
+ 136 02a4 130A0500 	    mv s4,a0
+ 137              	
+ 138 02a8 93028000 	    li t0,0x8
+ 139 02ac 63105502 	    bne a0,t0,5f
+ 140 02b0 9302A000 	    li t0,10
+ 141 02b4 B3C95902 	    div s3,s3,t0
+ 142 02b8 17050000 	    la a0,bios_del_char
+ 142      13050500 
+ 143 02c0 97000000 	    call print_string
+ 143      E7800000 
+ 144 02c8 6FF05FFD 	    j 1b
+ 145              	    
+ 146 02cc 9302D000 	5:  li t0,0xd
+ 147 02d0 63005504 	    beq a0,t0,2f
+ 148 02d4 9302A000 	    li t0,0xa
+ 149 02d8 630C5502 	    beq a0,t0,2f
+ 150              	
+ 151 02dc 93020003 	    li t0,0x30
+ 152 02e0 E34E55FA 	    blt a0,t0,1b
+ 153 02e4 9302A003 	    li t0,0x3a
+ 154 02e8 63445500 	    blt a0,t0,3f
+ 155 02ec 6FF01FFB 	    j 1b    
+ 156 02f0 130505FD 	3:  addi a0,a0,-0x30
+ 157 02f4 9302A000 	    li t0,10
+ 158 02f8 B3895902 	    mul s3,s3,t0
+ 159 02fc B389A900 	    add s3,s3,a0
+ 160 0300 13050A00 	    mv a0,s4
+ 161 0304 97000000 	    call uart_putc
+ 161      E7800000 
+GAS LISTING src/main.s 			page 56
+
+
+ 162 030c 6FF01FF9 	    j 1b
+ 163              	    
+ 164 0310 97000000 	2:  call print_newline
+ 164      E7800000 
+ 165 0318 13850900 	    mv a0,s3
+ 166              	
+ 167 031c 033A8100 	    ld s4,8(sp)
+ 168 0320 83390100 	    ld s3,(sp)
+ 169              	    sfree 16
+ 169 0324 833084FF 	>  ld ra,-8(fp)
+ 169 0328 033404FF 	>  ld fp,-16(fp)
+ 169 032c 13010102 	>  addi sp,sp,(16+16)
+ 170 0330 67800000 	    ret
+ 171              	
+ 172              	bios_input_string:
+ 173              	    salloc 16
+ 173 0334 233C11FE 	>  sd ra,-8(sp)
+ 173 0338 233881FE 	>  sd fp,-16(sp)
+ 173 033c 13040100 	>  mv fp,sp
+ 173 0340 130101FE 	>  addi sp,sp,(-16-16)
+ 174 0344 23303101 	    sd s3,(sp)
+ 175 0348 23344101 	    sd s4,8(sp)
+ 176              	
+ 177 034c 93090500 	    mv s3,a0
+ 178 0350 130A0000 	    mv s4,zero
+ 179              	
+ 180 0354 97000000 	1:  call uart_get
+ 180      E7800000 
+ 181 035c 9302D000 	    li t0,0xD
+ 182 0360 630E5502 	    beq a0,t0,2f
+ 183 0364 93028000 	    li t0,0x8
+ 184 0368 631E5500 	    bne a0,t0,3f
+ 185 036c 130AFAFF 	    addi s4,s4,-1
+ 186 0370 17050000 	    la a0,bios_del_char
+ 186      13050500 
+ 187 0378 97000000 	    call print_string
+ 187      E7800000 
+ 188 0380 6FF05FFD 	    j 1b
+ 189              	    
+ 190 0384 B3824901 	3:  add t0,s3,s4
+ 191 0388 2380A200 	    sb a0,(t0)
+ 192 038c 130A1A00 	    addi s4,s4,0x1
+ 193 0390 97000000 	    call uart_putc
+ 193      E7800000 
+ 194 0398 6FF0DFFB 	    j 1b
+ 195              	
+ 196 039c 13050A00 	2:  mv a0,s4
+ 197 03a0 033A8100 	    ld s4,8(sp)
+ 198 03a4 83390100 	    ld s3,(sp)
+ 199              	    sfree 16
+ 199 03a8 833084FF 	>  ld ra,-8(fp)
+ 199 03ac 033404FF 	>  ld fp,-16(fp)
+ 199 03b0 13010102 	>  addi sp,sp,(16+16)
+ 200 03b4 67800000 	    ret
+  69              	        .section .text.programs
+  70              	.include "programs/bounce.s"
+   1              	bounce:
+GAS LISTING src/main.s 			page 57
+
+
+   2              	    salloc 0
+   2 0000 233C11FE 	>  sd ra,-8(sp)
+   2 0004 233881FE 	>  sd fp,-16(sp)
+   2 0008 13040100 	>  mv fp,sp
+   2 000c 130101FF 	>  addi sp,sp,(-16-0)
+   3              	
+   4 0010 638A0900 	    beqz s3,1f
+   5 0014 93841400 	    addi s1,s1,1
+   6 0018 63C45401 	    blt s1,s5,3f
+   7 001c 93090000 	    li s3,0x0
+   8 0020 6F000001 	3:  j 2f
+   9 0024 9384F4FF 	1:  addi s1,s1,-1
+  10 0028 63940400 	    bnez s1,2f
+  11 002c 93091000 	    li s3,0x1
+  12 0030 630A0A00 	2:  beqz s4,1f
+  13 0034 13091900 	    addi s2,s2,1
+  14 0038 63446901 	    blt s2,s6,3f
+  15 003c 130A0000 	    li s4,0x0
+  16 0040 6F000001 	3:  j 2f
+  17 0044 1309F9FF 	1:  addi s2,s2,-1
+  18 0048 63140900 	    bnez s2,2f
+  19 004c 130A1000 	    li s4,0x1
+  20 0050 37050100 	2:  li a0,0x0000FF00
+  20      1B0505F0 
+  21 0058 93850400 	    mv a1,s1
+  22 005c 13060900 	    mv a2,s2
+  23 0060 93061000 	    li a3,0x1
+  24 0064 13071000 	    li a4,0x1
+  25 0068 97000000 	    call vga_write_rect
+  25      E7800000 
+  26 0070 97000000 	    call vga_flush
+  26      E7800000 
+  27              	
+  28              	    sfree 0
+  28 0078 833084FF 	>  ld ra,-8(fp)
+  28 007c 033404FF 	>  ld fp,-16(fp)
+  28 0080 13010101 	>  addi sp,sp,(0+16)
+  29 0084 67800000 	    ret
+  71              	    .section .text.end
+GAS LISTING src/main.s 			page 58
+
+
+DEFINED SYMBOLS
+         src/start.s:2      .text.start:0000000000000000 _start
+          src/main.s:4      *ABS*:0000000010000000 UART_ADDRESS
+          src/main.s:5      *ABS*:0000000000000005 LINE_STATUS_REGISTER
+          src/main.s:6      *ABS*:0000000000000003 LINE_CONTROL_REGISTER
+          src/main.s:7      *ABS*:0000000000000002 FIFO_CONTROL_REGISTER
+          src/main.s:8      *ABS*:0000000000000001 INTERRUPT_ENABLE_REGISTER
+          src/main.s:9      *ABS*:0000000000000001 LINE_STATUS_DATA_READY
+          src/main.s:10     *ABS*:0000000000400000 HEAP_LIST_SIZE
+          src/main.s:11     *ABS*:0000000000000040 HEAP_BLOCK_SIZE
+          src/main.s:12     *ABS*:0000000010000000 HEAP_SIZE
+          src/main.s:20     .data:0000000000000000 str
+          src/main.s:21     .data:0000000000000005 hex
+          src/main.s:22     .data:0000000000000015 HEX
+     res/data/bios.s:1      .data:0000000000000025 bios_store_str
+     res/data/bios.s:2      .data:000000000000003b bios_load_str
+     res/data/bios.s:3      .data:000000000000004d bios_addr_str
+     res/data/bios.s:4      .data:0000000000000058 bios_len_str
+     res/data/bios.s:5      .data:0000000000000060 bios_del_char
+  res/data/ivshmem.s:1      .data:0000000000000064 ivshmem_device_not_found_error_Message
+  res/data/ivshmem.s:2      .data:0000000000000083 ivshmem_address_out_of_bounds_error_Message
+  res/data/machine.s:1      .data:00000000000000d6 machine_fault_register_str
+  res/data/machine.s:2      .data:00000000000000eb machine_fault_register_fstr
+  res/data/machine.s:3      .data:00000000000000fb machine_fault_mepc_fstr
+  res/data/machine.s:5      .data:0000000000000115 machine_fault_cause_str
+  res/data/machine.s:7      .data:0000000000000126 machine_fault_E1_str
+  res/data/machine.s:8      .data:0000000000000141 machine_fault_E2_str
+  res/data/machine.s:9      .data:000000000000015a machine_fault_E3_str
+  res/data/machine.s:10     .data:0000000000000167 machine_fault_E5_str
+  res/data/machine.s:11     .data:000000000000017b machine_fault_E7_str
+  res/data/machine.s:12     .data:0000000000000194 machine_fault_E8_str
+  res/data/machine.s:13     .data:00000000000001bb machine_fault_E11_str
+  res/data/machine.s:14     .data:00000000000001e2 machine_fault_E24_str
+  res/data/machine.s:15     .data:00000000000001fa machine_fault_E25_str
+  res/data/machine.s:17     .data:000000000000021e machine_fault_uart_interupt_str
+  res/data/machine.s:19     .data:000000000000022c machine_fault_heap_str
+  res/data/machine.s:20     .data:000000000000023c machine_heap_fstr
+  res/data/machine.s:21     .data:0000000000000262 machine_heap_alloc_str
+  res/data/machine.s:22     .data:0000000000000269 machine_heap_free_str
+  res/data/machine.s:24     .data:000000000000027c machine_fault_stack_str
+  res/data/machine.s:25     .data:000000000000028d machine_stack_val_fstr
+  res/data/machine.s:27     .data:000000000000029b machine_regs
+      res/bss/heap.s:1      .bss:0000000000000000 heap_list
+      res/bss/heap.s:2      .bss:0000000001000000 heap
+     res/bss/stack.s:1      .bss:0000000011000000 stack
+     res/bss/stack.s:2      .bss:0000000011010000 stack_pointer
+     res/bss/stack.s:3      .bss:0000000011010000 buffer
+       res/bss/vga.s:1      .bss:0000000011010200 vga_mmio_ptr
+       res/bss/vga.s:2      .bss:0000000011010208 vga_frame_buffer_ptr
+       res/bss/vga.s:3      .bss:0000000011010210 vga_buffer
+       res/bss/pci.s:1      .bss:0000000011010218 pci_mmio_ptr
+      res/bss/uart.s:1      .bss:0000000011010220 uart_queue_head
+      res/bss/uart.s:2      .bss:0000000011010228 uart_queue_tail
+      res/bss/uart.s:3      .bss:0000000011010230 uart_queue_start
+   res/bss/ivshmem.s:1      .bss:0000000011010238 ivshmem_size
+   res/bss/ivshmem.s:2      .bss:0000000011010240 ivshmem_ptr
+      res/bss/bios.s:1      .bss:0000000011010248 bios_input_buffer
+GAS LISTING src/main.s 			page 59
+
+
+         src/start.s:4      .text.start:0000000000000000 $xrv64i2p1_m2p0_zicsr2p0_zmmul1p0_zbb1p0
+       src/machine.s:1      .text.machine:0000000000000000 machine_init
+   src/memory/heap.s:1      .text.memory:000000000000002c heap_init
+src/drivers/uart/main.s:15     .text.drivers:0000000000000618 uart_init
+   src/drivers/pci.s:60     .text.drivers:00000000000000bc pci_init
+src/drivers/vga/init.s:18     .text.drivers:0000000000000cb0 vga_init
+         src/start.s:23     *ABS*:0000000010521af4 VIO_PCI_INPUT_ID
+   src/drivers/pci.s:81     .text.drivers:0000000000000108 pci_scan
+src/drivers/virtio/pci/keyboard.s:22     .text.drivers:0000000000001014 virtio_pci_keyboard_init
+         src/start.s:29     .text.start:0000000000000068 loop
+   src/drivers/pci.s:2      *ABS*:0000000030000000 PCI_ECAM
+   src/drivers/pci.s:3      *ABS*:0000000040000000 PCI_MMIO_32
+   src/drivers/pci.s:4      *ABS*:0000004000000000 PCI_MMIO_64
+   src/drivers/pci.s:8      .text.drivers:0000000000000000 pci_allocate_bar_to_mmio_region
+   src/drivers/pci.s:10     .text.drivers:0000000000000000 $xrv64i2p1_m2p0_zicsr2p0_zmmul1p0_zbb1p0
+   src/drivers/pci.s:66     .text.drivers:00000000000000d0 pci_get_bar_address
+   src/drivers/pci.s:115    .text.drivers:0000000000000184 pci_config
+src/drivers/ivshmem.s:59     .text.drivers:00000000000001b4 ivshmem_address_out_of_bounds_error
+src/drivers/ivshmem.s:74     .text.drivers:00000000000001f0 ivshmem_sd
+src/drivers/ivshmem.s:96     .text.drivers:0000000000000248 ivshmem_ld
+src/drivers/ivshmem.s:119    .text.drivers:00000000000002a0 ivshmem_sw
+src/drivers/ivshmem.s:140    .text.drivers:00000000000002f8 ivshmem_lwu
+src/drivers/ivshmem.s:163    .text.drivers:0000000000000350 ivshmem_sh
+src/drivers/ivshmem.s:184    .text.drivers:00000000000003a8 ivshmem_lhu
+src/drivers/ivshmem.s:207    .text.drivers:0000000000000400 ivshmem_sb
+src/drivers/ivshmem.s:227    .text.drivers:0000000000000454 ivshmem_lbu
+  src/drivers/PLIC.s:1      *ABS*:000000000c000000 PLIC_BASE
+  src/drivers/PLIC.s:3      .text.drivers:00000000000004a8 plic_enable
+  src/drivers/PLIC.s:25     .text.drivers:00000000000004fc plic_set_prio
+  src/drivers/PLIC.s:37     .text.drivers:000000000000052c plic_set_prio_thres
+  src/drivers/PLIC.s:52     .text.drivers:0000000000000568 plic_get_ipb
+  src/drivers/PLIC.s:63     .text.drivers:0000000000000598 plic_claim_interrupt
+  src/drivers/PLIC.s:78     .text.drivers:00000000000005d8 plic_complete_interrupt
+src/drivers/uart/main.s:1      *ABS*:0000000000000000 UART_RHR
+src/drivers/uart/main.s:2      *ABS*:0000000000000000 UART_THR
+src/drivers/uart/main.s:3      *ABS*:0000000000000001 UART_IER
+src/drivers/uart/main.s:4      *ABS*:0000000000000002 UART_ISR
+src/drivers/uart/main.s:5      *ABS*:0000000000000002 UART_FCR
+src/drivers/uart/main.s:6      *ABS*:0000000000000003 UART_LCR
+src/drivers/uart/main.s:7      *ABS*:0000000000000004 UART_MCR
+src/drivers/uart/main.s:8      *ABS*:0000000000000005 UART_LSR
+src/drivers/uart/main.s:9      *ABS*:0000000000000006 UART_MSR
+src/drivers/uart/main.s:12     *ABS*:000000000000000a UART_PLIC_ID
+src/drivers/uart/main.s:13     *ABS*:0000000000000020 UART_QUEUE_SIZE
+   src/memory/heap.s:10     .text.memory:0000000000000048 malloc
+src/drivers/uart/main.s:50     .text.drivers:00000000000006b0 uart_queue_push
+src/drivers/uart/main.s:64     .text.drivers:00000000000006e8 uart_queue_pop
+src/drivers/uart/interrupt.s:1      .text.drivers:0000000000000720 uart_interrupt
+src/drivers/uart/api.s:1      .text.drivers:000000000000076c uart_getc
+       src/machine.s:207    .text.machine:000000000000049c External_Interrupt_Handler_end
+src/drivers/uart/api.s:17     .text.drivers:000000000000078c uart_putc
+src/drivers/uart/api.s:23     .text.drivers:0000000000000798 uart_get
+src/drivers/uart/print.s:1      .text.drivers:00000000000007e4 print_string
+src/drivers/uart/print.s:21     .text.drivers:0000000000000838 print_newline
+src/drivers/uart/print.s:32     .text.drivers:0000000000000870 print_int_hex
+src/drivers/uart/print.s:89     .text.drivers:0000000000000934 print_int_dec
+src/drivers/uart/printf.s:1      .text.drivers:00000000000009e0 printf
+GAS LISTING src/main.s 			page 60
+
+
+src/drivers/uart/print_number.s:5      .text.drivers:0000000000000b5c print_number
+src/drivers/vga/init.s:1      *ABS*:0000000011111234 VGA_ID
+src/drivers/vga/init.s:3      *ABS*:0000000000000000 VBE_DISPI_INDEX_ID
+src/drivers/vga/init.s:4      *ABS*:0000000000000001 VBE_DISPI_INDEX_XRES
+src/drivers/vga/init.s:5      *ABS*:0000000000000002 VBE_DISPI_INDEX_YRES
+src/drivers/vga/init.s:6      *ABS*:0000000000000003 VBE_DISPI_INDEX_BPP
+src/drivers/vga/init.s:7      *ABS*:0000000000000004 VBE_DISPI_INDEX_ENABLE
+src/drivers/vga/init.s:8      *ABS*:0000000000000005 VBE_DISPI_INDEX_BANK
+src/drivers/vga/init.s:9      *ABS*:0000000000000006 VBE_DISPI_INDEX_VIRT_WIDTH
+src/drivers/vga/init.s:10     *ABS*:0000000000000007 VBE_DISPI_INDEX_VIRT_HEIGHT
+src/drivers/vga/init.s:11     *ABS*:0000000000000008 VBE_DISPI_INDEX_X_OFFSET
+src/drivers/vga/init.s:12     *ABS*:0000000000000009 VBE_DISPI_INDEX_Y_OFFSET
+src/drivers/vga/init.s:14     *ABS*:0000000000000500 VGA_XRES
+src/drivers/vga/init.s:15     *ABS*:0000000000000438 VGA_YRES
+src/drivers/vga/init.s:16     *ABS*:0000000000000020 VGA_BPP
+src/drivers/vga/init.s:70     .text.drivers:0000000000000d6c vga_init_pci
+src/drivers/vga/init.s:34     .text.drivers:0000000000000cf8 vga_boch_init
+src/drivers/vga/api.s:1      .text.drivers:0000000000000dd4 vga_flush
+src/drivers/vga/api.s:35     .text.drivers:0000000000000e4c vga_write_rect
+                            *ABS*:0000000000000000 COMMON_CONFIG
+                            *ABS*:0000000000000008 NOTIFICATION
+                            *ABS*:0000000000000010 ISR_STATUS
+                            *ABS*:0000000000000018 DEVICE_CONFIG
+                            *ABS*:0000000000000020 NOTI_OFF_MULT
+                            *ABS*:0000000000000040 VQ_SIZE
+                            *ABS*:0000000000000028 VQ_DESCRIPTOR_TABLE
+                            *ABS*:0000000000000030 VQ_AVAIL_RING
+                            *ABS*:0000000000000038 VQ_USED_RING
+src/drivers/virtio/pci/transport.s:22     .text.drivers:0000000000000ed4 virtio_pci_transport_init_device
+src/drivers/virtio/pci/transport.s:47     .text.drivers:0000000000000f30 virtio_pci_transport_get_regs
+src/drivers/virtio/input.s:31     .text.drivers:0000000000001060 virtio_input_handshake
+src/drivers/virtio/input.s:61     .text.drivers:00000000000010d8 virtio_input_allocate_virtqueue
+src/drivers/virtio/input.s:22     *ABS*:0000000000000040 VIO_PCI_IN_VQUEUE_SIZE
+                            *ABS*:0000000000000014 DEVICE_STATUS
+                            *ABS*:0000000000000004 DEVICE_FEATURE
+                            *ABS*:000000000000000c DRIVER_FEATURE
+   src/memory/heap.s:50     .text.memory:00000000000000d8 zalloc
+ src/memory/memcpy.s:1      .text.memory:0000000000000000 memcpy
+ src/memory/memcpy.s:2      .text.memory:0000000000000000 $xrv64i2p1_m2p0_zicsr2p0_zmmul1p0_zbb1p0
+   src/memory/heap.s:68     .text.memory:0000000000000120 heap_alloc
+   src/memory/heap.s:105    .text.memory:0000000000000194 free
+   src/memory/heap.s:158    .text.memory:0000000000000258 heap_merge_free
+       src/machine.s:2      .text.machine:0000000000000000 $xrv64i2p1_m2p0_zicsr2p0_zmmul1p0_zbb1p0
+       src/machine.s:22     .text.machine:0000000000000040 Exception_vector
+       src/machine.s:40     .text.machine:0000000000000080 Exception_handler
+       src/machine.s:163    .text.machine:000000000000037c External_Interrupt_Handler
+       src/machine.s:212    .text.machine:000000000000051c machine_print_heap
+       src/machine.s:266    .text.machine:00000000000005f8 machine_print_stack
+       src/machine.s:258    .text.machine:00000000000005d0 machine_wfi
+src/programs/bounce.s:1      .text.programs:0000000000000000 bounce
+          src/bios.s:1      .text.bios:0000000000000000 bios_handle_input
+          src/bios.s:2      .text.bios:0000000000000000 $xrv64i2p1_m2p0_zicsr2p0_zmmul1p0_zbb1p0
+          src/bios.s:17     .text.bios:0000000000000050 bios_escape_sequence
+          src/bios.s:34     .text.bios:00000000000000a8 bios_write_disk
+          src/bios.s:54     .text.bios:0000000000000124 bios_read_disk
+          src/bios.s:81     .text.bios:00000000000001c0 bios_input_hex
+          src/bios.s:172    .text.bios:0000000000000334 bios_input_string
+GAS LISTING src/main.s 			page 61
+
+
+          src/bios.s:128    .text.bios:0000000000000280 bios_input_int
+src/programs/bounce.s:2      .text.programs:0000000000000000 $xrv64i2p1_m2p0_zicsr2p0_zmmul1p0_zbb1p0
+         src/start.s:4      .text.start:0000000000000000 .L0 
+         src/start.s:6      .text.start:0000000000000008 .L0 
+         src/start.s:7      .text.start:0000000000000010 .L0 
+         src/start.s:12     .text.start:0000000000000028 .L21
+         src/start.s:9      .text.start:000000000000001c .L11
+   src/drivers/pci.s:36     .text.drivers:0000000000000068 .L0 
+   src/drivers/pci.s:61     .text.drivers:00000000000000bc .L0 
+src/drivers/ivshmem.s:61     .text.drivers:00000000000001c4 .L0 
+src/drivers/ivshmem.s:76     .text.drivers:00000000000001f0 .L0 
+src/drivers/ivshmem.s:83     .text.drivers:0000000000000210 .L0 
+src/drivers/ivshmem.s:98     .text.drivers:0000000000000248 .L0 
+src/drivers/ivshmem.s:105    .text.drivers:0000000000000268 .L0 
+src/drivers/ivshmem.s:121    .text.drivers:00000000000002a0 .L0 
+src/drivers/ivshmem.s:128    .text.drivers:00000000000002c0 .L0 
+src/drivers/ivshmem.s:142    .text.drivers:00000000000002f8 .L0 
+src/drivers/ivshmem.s:149    .text.drivers:0000000000000318 .L0 
+src/drivers/ivshmem.s:165    .text.drivers:0000000000000350 .L0 
+src/drivers/ivshmem.s:172    .text.drivers:0000000000000370 .L0 
+src/drivers/ivshmem.s:186    .text.drivers:00000000000003a8 .L0 
+src/drivers/ivshmem.s:193    .text.drivers:00000000000003c8 .L0 
+src/drivers/ivshmem.s:209    .text.drivers:0000000000000400 .L0 
+src/drivers/ivshmem.s:215    .text.drivers:000000000000041c .L0 
+src/drivers/ivshmem.s:229    .text.drivers:0000000000000454 .L0 
+src/drivers/ivshmem.s:235    .text.drivers:0000000000000470 .L0 
+src/drivers/uart/main.s:20     .text.drivers:0000000000000634 .L0 
+src/drivers/uart/main.s:22     .text.drivers:0000000000000640 .L0 
+src/drivers/uart/main.s:24     .text.drivers:000000000000064c .L0 
+src/drivers/uart/main.s:52     .text.drivers:00000000000006b4 .L0 
+src/drivers/uart/main.s:55     .text.drivers:00000000000006c4 .L0 
+src/drivers/uart/main.s:66     .text.drivers:00000000000006ec .L0 
+src/drivers/uart/main.s:69     .text.drivers:00000000000006fc .L0 
+src/drivers/uart/api.s:25     .text.drivers:00000000000007a8 .L0 
+src/drivers/uart/api.s:27     .text.drivers:00000000000007b4 .L0 
+src/drivers/uart/print.s:48     .text.drivers:00000000000008a0 .L0 
+src/drivers/uart/print.s:58     .text.drivers:00000000000008c4 .L0 
+src/drivers/uart/print.s:106    .text.drivers:0000000000000964 .L0 
+src/drivers/uart/print.s:116    .text.drivers:0000000000000988 .L0 
+src/drivers/uart/print_number.s:15     .text.drivers:0000000000000b84 .L0 
+src/drivers/uart/print_number.s:22     .text.drivers:0000000000000ba4 .L0 
+src/drivers/vga/init.s:28     .text.drivers:0000000000000cdc .L0 
+src/drivers/vga/init.s:36     .text.drivers:0000000000000d08 .L0 
+src/drivers/vga/init.s:79     .text.drivers:0000000000000d9c .L0 
+src/drivers/vga/init.s:86     .text.drivers:0000000000000db8 .L0 
+src/drivers/vga/api.s:9      .text.drivers:0000000000000df4 .L0 
+src/drivers/vga/api.s:11     .text.drivers:0000000000000e00 .L0 
+src/drivers/vga/api.s:47     .text.drivers:0000000000000e74 .L0 
+   src/drivers/pci.s:26     .text.drivers:0000000000000038 .L12
+   src/drivers/pci.s:109    .text.drivers:0000000000000168 .L14
+   src/drivers/pci.s:93     .text.drivers:0000000000000130 .L22
+   src/drivers/pci.s:91     .text.drivers:000000000000012c .L13
+src/drivers/ivshmem.s:89     .text.drivers:0000000000000230 .L15
+src/drivers/ivshmem.s:93     .text.drivers:0000000000000240 .L23
+src/drivers/ivshmem.s:111    .text.drivers:0000000000000288 .L16
+src/drivers/ivshmem.s:115    .text.drivers:0000000000000298 .L24
+src/drivers/ivshmem.s:134    .text.drivers:00000000000002e0 .L17
+GAS LISTING src/main.s 			page 62
+
+
+src/drivers/ivshmem.s:138    .text.drivers:00000000000002f0 .L25
+src/drivers/ivshmem.s:155    .text.drivers:0000000000000338 .L18
+src/drivers/ivshmem.s:159    .text.drivers:0000000000000348 .L26
+src/drivers/ivshmem.s:178    .text.drivers:0000000000000390 .L19
+src/drivers/ivshmem.s:182    .text.drivers:00000000000003a0 .L27
+src/drivers/ivshmem.s:199    .text.drivers:00000000000003e8 .L110
+src/drivers/ivshmem.s:203    .text.drivers:00000000000003f8 .L28
+src/drivers/ivshmem.s:221    .text.drivers:000000000000043c .L111
+src/drivers/ivshmem.s:225    .text.drivers:000000000000044c .L29
+src/drivers/ivshmem.s:241    .text.drivers:0000000000000490 .L112
+src/drivers/ivshmem.s:245    .text.drivers:00000000000004a0 .L210
+src/drivers/uart/main.s:61     .text.drivers:00000000000006e0 .L113
+src/drivers/uart/main.s:75     .text.drivers:0000000000000718 .L114
+src/drivers/uart/interrupt.s:9      .text.drivers:000000000000074c .L116
+src/drivers/uart/interrupt.s:4      .text.drivers:0000000000000734 .L115
+src/drivers/uart/api.s:12     .text.drivers:0000000000000784 .L117
+src/drivers/uart/api.s:14     .text.drivers:0000000000000788 .L211
+src/drivers/uart/api.s:34     .text.drivers:00000000000007cc .L119
+src/drivers/uart/api.s:25     .text.drivers:00000000000007a8 .L118
+src/drivers/uart/print.s:15     .text.drivers:0000000000000820 .L121
+src/drivers/uart/print.s:9      .text.drivers:0000000000000804 .L120
+src/drivers/uart/print.s:55     .text.drivers:00000000000008bc .L122
+src/drivers/uart/print.s:66     .text.drivers:00000000000008e4 .L212
+src/drivers/uart/print.s:72     .text.drivers:00000000000008fc .L123
+src/drivers/uart/print.s:113    .text.drivers:0000000000000980 .L124
+src/drivers/uart/print.s:125    .text.drivers:00000000000009a8 .L213
+src/drivers/uart/printf.s:123    .text.drivers:0000000000000b40 .L92
+src/drivers/uart/printf.s:25     .text.drivers:0000000000000a38 .L125
+src/drivers/uart/printf.s:11     .text.drivers:0000000000000a08 .L91
+src/drivers/uart/printf.s:21     .text.drivers:0000000000000a28 .L214
+src/drivers/uart/printf.s:45     .text.drivers:0000000000000a6c .L126
+src/drivers/uart/printf.s:60     .text.drivers:0000000000000a98 .L127
+src/drivers/uart/printf.s:38     .text.drivers:0000000000000a5c .L215
+src/drivers/uart/printf.s:68     .text.drivers:0000000000000ab0 .L216
+src/drivers/uart/printf.s:91     .text.drivers:0000000000000aec .L128
+src/drivers/uart/printf.s:105    .text.drivers:0000000000000b10 .L129
+src/drivers/uart/printf.s:119    .text.drivers:0000000000000b34 .L130
+src/drivers/uart/print_number.s:20     .text.drivers:0000000000000b9c .L131
+src/drivers/uart/print_number.s:24     .text.drivers:0000000000000bac .L132
+src/drivers/uart/print_number.s:38     .text.drivers:0000000000000bd8 .L133
+src/drivers/uart/print_number.s:49     .text.drivers:0000000000000bfc .L31
+src/drivers/uart/print_number.s:44     .text.drivers:0000000000000bec .L217
+src/drivers/uart/print_number.s:47     .text.drivers:0000000000000bf8 .L218
+src/drivers/uart/print_number.s:61     .text.drivers:0000000000000c2c .L219
+src/drivers/uart/print_number.s:56     .text.drivers:0000000000000c14 .L134
+src/drivers/uart/print_number.s:68     .text.drivers:0000000000000c44 .L136
+src/drivers/uart/print_number.s:63     .text.drivers:0000000000000c30 .L135
+src/drivers/uart/print_number.s:80     .text.drivers:0000000000000c74 .L137
+src/drivers/uart/print_number.s:75     .text.drivers:0000000000000c5c .L220
+src/drivers/uart/print_number.s:83     .text.drivers:0000000000000c7c .L138
+src/drivers/vga/init.s:45     .text.drivers:0000000000000d28 .L139
+src/drivers/vga/api.s:16     .text.drivers:0000000000000e14 .L140
+src/drivers/vga/api.s:57     .text.drivers:0000000000000e98 .L221
+src/drivers/vga/api.s:50     .text.drivers:0000000000000e80 .L141
+src/drivers/virtio/pci/transport.s:99     .text.drivers:0000000000000fd8 .L142
+src/drivers/virtio/pci/transport.s:71     .text.drivers:0000000000000f7c .L32
+src/drivers/virtio/pci/transport.s:87     .text.drivers:0000000000000fac .L33
+GAS LISTING src/main.s 			page 63
+
+
+src/drivers/virtio/pci/transport.s:92     .text.drivers:0000000000000fc0 .L41
+src/drivers/virtio/pci/transport.s:106    .text.drivers:0000000000000fe8 .L143
+src/drivers/virtio/pci/transport.s:57     .text.drivers:0000000000000f54 .L222
+src/drivers/virtio/input.s:55     .text.drivers:00000000000010c0 .L144
+   src/memory/heap.s:3      .text.memory:000000000000002c .L0 
+   src/memory/heap.s:23     .text.memory:0000000000000074 .L0 
+   src/memory/heap.s:96     .text.memory:000000000000016c .L0 
+   src/memory/heap.s:101    .text.memory:0000000000000184 .L0 
+   src/memory/heap.s:110    .text.memory:00000000000001a8 .L0 
+   src/memory/heap.s:115    .text.memory:00000000000001c0 .L0 
+   src/memory/heap.s:142    .text.memory:0000000000000214 .L0 
+ src/memory/memcpy.s:14     .text.memory:0000000000000028 .L146
+ src/memory/memcpy.s:6      .text.memory:000000000000000c .L145
+   src/memory/heap.s:20     .text.memory:0000000000000070 .L147
+   src/memory/heap.s:41     .text.memory:00000000000000b8 .L223
+   src/memory/heap.s:45     .text.memory:00000000000000c4 .L93
+   src/memory/heap.s:26     .text.memory:0000000000000084 .L148
+   src/memory/heap.s:60     .text.memory:0000000000000100 .L149
+   src/memory/heap.s:95     .text.memory:000000000000016c .L151
+   src/memory/heap.s:122    .text.memory:00000000000001dc .L152
+   src/memory/heap.s:141    .text.memory:0000000000000214 .L153
+   src/memory/heap.s:153    .text.memory:0000000000000244 .L154
+       src/machine.s:2      .text.machine:0000000000000000 .L0 
+       src/machine.s:45     .text.machine:0000000000000108 .L0 
+       src/machine.s:51     .text.machine:0000000000000124 .L0 
+       src/machine.s:55     .text.machine:0000000000000138 .L0 
+       src/machine.s:59     .text.machine:000000000000014c .L0 
+       src/machine.s:63     .text.machine:0000000000000160 .L0 
+       src/machine.s:67     .text.machine:0000000000000174 .L0 
+       src/machine.s:71     .text.machine:0000000000000188 .L0 
+       src/machine.s:75     .text.machine:000000000000019c .L0 
+       src/machine.s:79     .text.machine:00000000000001b0 .L0 
+       src/machine.s:83     .text.machine:00000000000001c4 .L0 
+       src/machine.s:87     .text.machine:00000000000001e0 .L0 
+       src/machine.s:98     .text.machine:000000000000020c .L0 
+       src/machine.s:102    .text.machine:0000000000000220 .L0 
+       src/machine.s:114    .text.machine:000000000000024c .L0 
+       src/machine.s:121    .text.machine:0000000000000264 .L0 
+       src/machine.s:133    .text.machine:000000000000028c .L0 
+       src/machine.s:139    .text.machine:00000000000002ac .L0 
+       src/machine.s:172    .text.machine:000000000000041c .L168
+       src/machine.s:168    .text.machine:000000000000040c .L0 
+       src/machine.s:218    .text.machine:0000000000000538 .L0 
+       src/machine.s:228    .text.machine:0000000000000558 .L0 
+       src/machine.s:233    .text.machine:000000000000056c .L0 
+       src/machine.s:235    .text.machine:0000000000000578 .L0 
+       src/machine.s:278    .text.machine:0000000000000624 .L0 
+       src/machine.s:53     .text.machine:0000000000000130 .L156
+       src/machine.s:90     .text.machine:00000000000001ec .L224
+       src/machine.s:57     .text.machine:0000000000000144 .L157
+       src/machine.s:61     .text.machine:0000000000000158 .L158
+       src/machine.s:65     .text.machine:000000000000016c .L159
+       src/machine.s:69     .text.machine:0000000000000180 .L160
+       src/machine.s:73     .text.machine:0000000000000194 .L161
+       src/machine.s:77     .text.machine:00000000000001a8 .L162
+       src/machine.s:81     .text.machine:00000000000001bc .L163
+       src/machine.s:85     .text.machine:00000000000001d0 .L164
+GAS LISTING src/main.s 			page 64
+
+
+       src/machine.s:89     .text.machine:00000000000001ec .L165
+       src/machine.s:128    .text.machine:000000000000027c .L225
+       src/machine.s:108    .text.machine:0000000000000238 .L166
+       src/machine.s:160    .text.machine:00000000000002fc .L226
+       src/machine.s:154    .text.machine:00000000000002e0 .L167
+       src/machine.s:248    .text.machine:00000000000005a8 .L227
+       src/machine.s:235    .text.machine:0000000000000578 .L34
+       src/machine.s:236    .text.machine:0000000000000580 .L42
+       src/machine.s:222    .text.machine:0000000000000548 .L169
+       src/machine.s:274    .text.machine:0000000000000614 .L170
+          src/bios.s:37     .text.bios:00000000000000b8 .L0 
+          src/bios.s:39     .text.bios:00000000000000c8 .L0 
+          src/bios.s:43     .text.bios:00000000000000e4 .L0 
+          src/bios.s:47     .text.bios:00000000000000fc .L0 
+          src/bios.s:57     .text.bios:0000000000000134 .L0 
+          src/bios.s:59     .text.bios:0000000000000144 .L0 
+          src/bios.s:63     .text.bios:0000000000000160 .L0 
+          src/bios.s:68     .text.bios:0000000000000180 .L0 
+          src/bios.s:74     .text.bios:0000000000000198 .L0 
+          src/bios.s:94     .text.bios:00000000000001f4 .L0 
+          src/bios.s:142    .text.bios:00000000000002b8 .L0 
+          src/bios.s:186    .text.bios:0000000000000370 .L0 
+          src/bios.s:10     .text.bios:0000000000000028 .L228
+          src/bios.s:27     .text.bios:0000000000000088 .L171
+          src/bios.s:13     .text.bios:0000000000000038 .L229
+          src/bios.s:30     .text.bios:0000000000000098 .L230
+          src/bios.s:98     .text.bios:0000000000000208 .L51
+          src/bios.s:87     .text.bios:00000000000001dc .L172
+          src/bios.s:120    .text.bios:000000000000025c .L231
+          src/bios.s:113    .text.bios:0000000000000240 .L35
+          src/bios.s:112    .text.bios:000000000000023c .L43
+          src/bios.s:146    .text.bios:00000000000002cc .L52
+          src/bios.s:134    .text.bios:000000000000029c .L173
+          src/bios.s:164    .text.bios:0000000000000310 .L232
+          src/bios.s:156    .text.bios:00000000000002f0 .L36
+          src/bios.s:196    .text.bios:000000000000039c .L233
+          src/bios.s:190    .text.bios:0000000000000384 .L37
+          src/bios.s:180    .text.bios:0000000000000354 .L174
+src/programs/bounce.s:9      .text.programs:0000000000000024 .L175
+src/programs/bounce.s:8      .text.programs:0000000000000020 .L38
+src/programs/bounce.s:12     .text.programs:0000000000000030 .L234
+src/programs/bounce.s:17     .text.programs:0000000000000044 .L176
+src/programs/bounce.s:16     .text.programs:0000000000000040 .L39
+src/programs/bounce.s:20     .text.programs:0000000000000050 .L235
+
+UNDEFINED SYMBOLS
+_bss_start
+_bss_end

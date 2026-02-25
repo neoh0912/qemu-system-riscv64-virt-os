@@ -11,8 +11,6 @@
 .equ HEAP_BLOCK_SIZE, 64
 .equ HEAP_SIZE, HEAP_LIST_SIZE*HEAP_BLOCK_SIZE
 
-.equ E_ERROR,0x1
-
 #[gi    [macros]
 .include "macros.s"
 .include "debug.s"
@@ -22,60 +20,52 @@
 str: .string "NEOH"
 hex: .ascii "0123456789abcdef"
 HEX: .ascii "0123456789ABCDEF"
-hex_prefix: .string "0x"
-.include "data/uart_async.data"
-.include "data/machine.data"
-.include "data/bios.data"
-.include "data/ivshmem.data"
-.include "data/heap.data"
-.include "data/pci.data"
-.include "data/vga.data"
-#.include "data/xhcl.data"
-stack: .zero 65536
-stack_pointer:
-buffer: .space 512
-data.end:           
+.include "data/bios.s"
+.include "data/ivshmem.s"
+.include "data/machine.s"
 
 #[yi    [ BSS ]
         .section .bss
         .align 16
-heap_list: .space HEAP_LIST_SIZE*4
-heap: .space HEAP_SIZE
-
+.include "bss/heap.s"
+.include "bss/stack.s"
+.include "bss/vga.s"
+.include "bss/pci.s"
+.include "bss/uart.s"
+.include "bss/ivshmem.s"
+.include "bss/bios.s"
 
 #[mi    [Program]
         .section .text.start
 .include "start.s"
         .section .text.drivers
-.include "lib/drivers/uart.s"
-.include "lib/drivers/uart_async.s"
-.include "lib/drivers/pci.s"
-.include "lib/drivers/ivshmem.s"
-.include "lib/drivers/PLIC.s"
+.include "drivers/pci.s"
+.include "drivers/ivshmem.s"
+.include "drivers/PLIC.s"
 
-.include "lib/drivers/vga/init.s"
-.include "lib/drivers/vga/api.s"
+.include "drivers/uart/main.s"
+.include "drivers/uart/interrupt.s"
+.include "drivers/uart/api.s"
+.include "drivers/uart/print.s"
+.include "drivers/uart/printf.s"
+.include "drivers/uart/print_number.s"
 
-#.include "lib/drivers/usb/xhcl/init.s"
-#.include "lib/drivers/usb/xhcl/api.s"
+.include "drivers/vga/init.s"
+.include "drivers/vga/api.s"
 
-.include "lib/drivers/virtio/pci/transport.s"
-.include "lib/drivers/virtio/pci/keyboard.s"
-.include "lib/drivers/virtio/input.s"
-        .section .text.print
-.include "lib/print/print.s"
-.include "lib/print/printf.s"
-.include "lib/print/print_number.s"
+#.include "drivers/usb/xhcl/init.s"
+#.include "drivers/usb/xhcl/api.s"
+
+.include "drivers/virtio/pci/transport.s"
+.include "drivers/virtio/pci/keyboard.s"
+.include "drivers/virtio/input.s"
         .section .text.memory
-.include "lib/memory/memcpy.s"
-.include "lib/memory/heap.s"
+.include "memory/memcpy.s"
+.include "memory/heap.s"
         .section .text.machine
 .include "machine.s"
         .section .text.bios
 .include "bios.s"
-        .section .text.drive
-.include "drive.s"
         .section .text.programs
 .include "programs/bounce.s"
-
     .section .text.end

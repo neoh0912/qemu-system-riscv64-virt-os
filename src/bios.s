@@ -5,8 +5,6 @@ bios_handle_input:
 
     li t0,0x8
     bne a0,t0,2f
-    li a0,E_ERROR
-    la a1,bios_manual_error_Message
     ebreak
     j 1f
 2:  li t0,0x1B

@@ -64,10 +64,7 @@ ivshmem_address_out_of_bounds_error:
         sd t0,(sp)
         sd t2,8(sp)
 
-        li a0,E_ERROR
-        la a1,ivshmem_address_out_of_bounds_error_Message
-        mv a2,sp
-        ecall
+        ebreak
 
         sfree 16
         ret

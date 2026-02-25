@@ -14,11 +14,12 @@ _start:
     
     call machine_init
     call heap_init
-    call uart_async_init
+    call uart_init
     call pci_init
 #    call ivshmem_init
     call vga_init
 #    call xhcl_init
+
     .equ VIO_PCI_INPUT_ID, 0x10521af4
     li a0,VIO_PCI_INPUT_ID
     call pci_scan

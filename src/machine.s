@@ -180,7 +180,7 @@ External_Interrupt_Handler:
     j External_Interrupt_Handler_end
     j External_Interrupt_Handler_end
     
-    j uart_async_interrupt
+    j uart_interrupt
     
     j External_Interrupt_Handler_end
     j External_Interrupt_Handler_end
