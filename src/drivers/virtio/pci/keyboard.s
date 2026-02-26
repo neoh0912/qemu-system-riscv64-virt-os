@@ -14,13 +14,15 @@
 .equ NOTI_OFF_MULT,0x20
 .equ VQUEUE,0x28
 .equ RING_BUFFER,0x30
+.equ RING_BUFFER_SIZE,0x38
 
 .equ VQ_DESCRIPTOR_TABLE,0x0
 .equ VQ_AVAIL_RING,0x8
 .equ VQ_USED_RING,0x10
-.equ VQ_SIZE,0x18
+.equ LAST_SEEN_USED,0x18
+.equ VQ_SIZE,0x20
 
-.equ RING_BUFFER_SIZE,0x100
+.equ KEY_RING_BUFFER_SIZE,0x20
 
 virtio_pci_keyboard_init:
 #[ci [ a0 = address of config space , a1 = bus #, a2 = device #]
@@ -72,10 +74,13 @@ DEVICE = 0x20
         ld a0,VQUEUE(t0)
         call virtio_input_allocate_input_structs
 
-        li a0,RING_BUFFER_SIZE+0x2
+        li a0,KEY_RING_BUFFER_SIZE*8+0x8
         call zalloc
         ld t0,DEVICE(sp)
         sd a0,RING_BUFFER(t0)
+        ld t0,DEVICE(sp)
+        li t1,KEY_RING_BUFFER_SIZE
+        sd t1,(t0)
 
         ld t1,NOTIFICATION(t0)
         sh zero,(t1)
@@ -86,26 +91,60 @@ DEVICE = 0x20
 
 virtio_pci_keyboard_callback:
 #[ci [ a0 = *device, a1 = irq ]
-        A0 = 0x0
-        A1 = 0x8
+        A1 = 0x0
 
         salloc 16
 
-        sd a0,A0(sp)
         sd a1,A1(sp)
-        
-        ld t0,ISR_STATUS(a0)
+        sd s1,0x8(sp)
+        mv s1,a0
+
+        ld t0,ISR_STATUS(s1)
         lbu t1,(t0)
         beqz t1,9f
- 
-        db 'i'       
-#        call virtio_input_read_used_ring
+
+        mv a2,s1
+        ld a0,VQUEUE(a2)
+        la a1,virtio_pci_keyboard_append_ring
+
+        call virtio_input_read_used_ring
+
+        ld t1,NOTIFICATION(s1)
+        sh zero,(t1)
+        fence w,w
         
         li a0,0x0
+        ld a1,A1(sp)
         call plic_complete_interrupt
         li a0,0x0
         j 8f
 
 9:      li a0,0x1
-8:      sfree 16
+8:      ld s1,0x8(sp)
+        sfree 16
         ret
+
+virtio_pci_keyboard_append_ring:
+#[ci [ a0 = *device, a1 = val]
+read = 0x0
+write = 0x4
+ring = 0x8
+A0 = 0x0
+        ld t0,RING_BUFFER_SIZE(a0)
+        ld a0,RING_BUFFER(a0)
+        lwu t1,read(a0)
+        remu t1,t1,t0
+        lwu t2,write(a0)
+        addi t3,t2,0x1
+        remu t3,t3,t0
+        beq t1,t3,1f
+
+        remu t3,t2,t0
+        slli t3,t3,0x3
+        add t3,t3,a0
+        ld t4,(a1)
+        sd t4,ring(t3)
+        addi t2,t2,0x1
+        sw t2,write(a0)
+        
+1:      ret

@@ -18,7 +18,8 @@
 .equ VQ_DESCRIPTOR_TABLE,0x0
 .equ VQ_AVAIL_RING,0x8
 .equ VQ_USED_RING,0x10
-.equ VQ_SIZE,0x18
+.equ LAST_SEEN_USED,0x18
+.equ VQ_SIZE,0x20
 
 virtio_pci_transport_init_device:
 #[ci [ a0 = address off config ]
@@ -26,12 +27,12 @@ virtio_pci_transport_init_device:
 
         sd a0,0x0(sp)
         
-        li a0,0x38
+        li a0,0x40
         call malloc
         sd a0,0x8(sp)
 
-        li a0,0x1a
-        call malloc
+        li a0,0x22
+        call zalloc
         ld t0,0x8(sp)
         sd a0,VQUEUE(t0)
 

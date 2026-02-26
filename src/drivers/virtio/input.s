@@ -1,23 +1,13 @@
-.local COMMON_CONFIG
-.local NOTIFICATION
-.local ISR_STATUS
-.local DEVICE_CONFIG
-.local NOTI_OFF_MULT
 .local VQ_SIZE
 .local VQ_DESCRIPTOR_TABLE
 .local VQ_AVAIL_RING
 .local VQ_USED_RING
-.equ COMMON_CONFIG,0x0
-.equ NOTIFICATION,0x8
-.equ ISR_STATUS,0x10
-.equ DEVICE_CONFIG,0x18
-.equ NOTI_OFF_MULT,0x20
-.equ VQUEUE,0x28
 
 .equ VQ_DESCRIPTOR_TABLE,0x0
 .equ VQ_AVAIL_RING,0x8
 .equ VQ_USED_RING,0x10
-.equ VQ_SIZE,0x18
+.equ LAST_SEEN_USED,0x18
+.equ VQ_SIZE,0x20
 
 .equ VIO_PCI_IN_VQUEUE_SIZE,0x40
 
@@ -140,7 +130,6 @@ next = 0xe
         ld a0,A0(sp)
         ld a2,VQ_SIZE(a0)
 
-
         li t0,0x0
         ld t1,BUFFER(sp)
         ld t2,VQ_DESCRIPTOR_TABLE(a0)
@@ -162,6 +151,7 @@ next = 0xe
         sh t0,(t4)
 
         add t4,t4,0x2
+        add t1,t1,0x8
         addi t0,t0,0x1
         blt t0,a2,1b
 
@@ -175,12 +165,71 @@ next = 0xe
         ret
 
 virtio_input_read_used_ring:
-#[ci [ a0 = *used_ring, a1 = *avail_ring,    ]
-#[ci [ a2 = *last_seen_used, a3 = queue_size ]
-#[ci [ a4 = *handler                         ]
-        salloc 0
+#[ci [ a0 = *VQUEUE, a1 = *handler , a2 = *device]
+A0 = 0x0
+A1 = 0x8
+A2 = 0x10
+idx = 0x2
+ring = 0x4
+        salloc (24+8*6)
+        sd a0,A0(sp)
+        sd a1,A1(sp)
+        sd a2,A2(sp)
+        sd s1,0x18(sp)
+        sd s2,0x20(sp)
+        sd s3,0x28(sp)
+        sd s4,0x30(sp)
+        sd s5,0x38(sp)
+        sd s6,0x40(sp)
 
-        
 
-        sfree 0
+#[g -- Read Used_ring->idx --
+
+        ld s1,VQ_USED_RING(a0)
+        ld s2,LAST_SEEN_USED(a0)
+        lhu s3,VQ_SIZE(a0)
+        ld s4,VQ_AVAIL_RING(a0)
+
+        mv s5,a0        
+1:      lhu t0,idx(s1)
+#        ebreak
+        beq t0,s2,1f
+
+        remu t0,s2,s3
+#        ebreak
+        slli t0,t0,0x3
+        add t0,t0,s1
+
+        lwu s6,ring(t0)
+#        ebreak
+        ld t0,VQ_DESCRIPTOR_TABLE(s5)
+        slli t1,s6,0x4
+        add t0,t0,t1
+
+        ld a1,(t0)
+        ld a0,A2(sp)
+        ld t0,A1(sp)
+        jalr ra,t0,0x0
+
+        lhu t0,idx(s4)
+        remu t1,t0,s3
+        slli t1,t1,0x1
+        add t1,t1,s4
+
+        sh s6,ring(t1)
+        addi t0,t0,0x1
+        sh t0,idx(s4)
+
+        addi s2,s2,0x1
+        j 1b
+
+1:      sd s2,LAST_SEEN_USED(s5)
+
+        ld s1,0x18(sp)
+        ld s2,0x20(sp)
+        ld s3,0x28(sp)
+        ld s4,0x30(sp)
+        ld s5,0x38(sp)
+        ld s6,0x40(sp)
+        sfree (24+8*6)
         ret
