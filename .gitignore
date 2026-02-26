@@ -1,0 +1,23 @@
+# Executables and Binaries
+build/
+bin
+*.elf
+*.bin
+*.out
+
+# Object files and Listings
+*.o
+*.obj
+*.lst
+*.map
+
+# OS-specific (especially since you're on a NAS with Windows/Linux mix)
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor-specific
+.vscode/
+.idea/
+*.swp
+*~

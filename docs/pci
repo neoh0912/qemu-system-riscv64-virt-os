@@ -1,0 +1,32 @@
+pci_devices:
+
+0x00    8       *device
+0x08    8       *driver
+0x10    8       *next
+
+pci_handlers:
+
+0x00    8       *pci_handler(32)
+0x08    8       *pci_handler(33)
+0x10    8       *pci_handler(34)
+0x18    8       *pci_handler(35)
+
+pci_handler:
+
+0x00    8       *device
+0x08    8       *callback
+0x10    8       *next
+
+pci_drivers:
+0x00    4       pci_id
+0x04    2       class_codes
+0x06    2       reserved
+0x08    8       *driver
+0x10    8       *next
+0x18    8       *free
+
+pci_driver interface
+
+     a0 = address to pci_config,
+     a1 = bus #, a2 = device #,
+     
