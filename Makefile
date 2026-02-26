@@ -7,7 +7,7 @@ BUILD_DIR = build
 
 .PHONY: all clean
 
-all: $(BUILD_DIR)/bin
+all: clean $(BUILD_DIR)/bin
 
 $(BUILD_DIR)/bin: main.s main.ld
 	mkdir -p $(BUILD_DIR)
