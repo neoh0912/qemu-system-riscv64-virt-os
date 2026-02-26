@@ -61,6 +61,13 @@ pci_allocate_bar_to_mmio_region:
         ret
 
 pci_init:
+#[g -- allocate pci_handlers --
+
+        li a0,0x20
+        call zalloc
+        la t0,pci_handlers
+        sd a0,(t0)
+
         la t0,pci_mmio_ptr
         li t1,PCI_MMIO_32
         sd t1,(t0)
@@ -116,12 +123,11 @@ free = 0x18
 
 #[g -- Add pci_driver to linked list --
 
-        ld t0,pci_drivers
-        beqz t0,1f
-        sd a0,next(a0)
-        j 2f
-1:      sd t0,next(a0)
-2:      la t0,pci_drivers
+        la t0,pci_drivers
+        ld t1,(t0)
+        bnez t1,1f
+        mv t1,a0
+1:      sd t1,next(a0)
         sd a0,(t0)
 
         sfree 16
@@ -183,6 +189,40 @@ free = 0x18
         ld s2, 0x8(sp)
         ld s3, 0x10(sp)
         sfree 32
+        ret
+
+pci_register_callback:
+#[ci [ a0 = *device: device_specific_struct, a1 = *callback: call, a2 = iqr ]
+        salloc 16
+#[g -- allocate pci_handler --
+
+device = 0x0
+callback = 0x8
+next = 0x10
+
+        sd a0,(sp)
+        sd a1,0x8(sp)
+
+        li a0,0x18
+        call zalloc
+
+        ld t0,(sp)
+        sd t0,device(a0)
+        ld t0,0x8(sp)
+        sd t0,callback(a0)
+        addi t0,a2,-0x20
+        la t1,pci_handlers
+        add t0,t0,t1
+        ld t1,(t0)
+        
+#[g -- link handler --
+                
+        bnez t1,1f
+        mv t1,a0
+1:      sd t1,next(a0)
+        sd a0,(t0)
+        
+        sfree 16
         ret
 
 pci_config:
