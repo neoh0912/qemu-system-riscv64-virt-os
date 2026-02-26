@@ -86,11 +86,11 @@ pci_register_driver:
 #[c  device_id = (CLASS_CODE)[40-47](SUB_CLASS)[32-39]
 #[c               (DEVICE_ID)[16-31](VENDOR_ID)[0-15]
 
-pci_id$ = 0x0
-class_code$ = 0x4
-driver$ = 0x08
-next$ = 0x10
-free$ = 0x18
+pci_id = 0x0
+class_code = 0x4
+driver = 0x08
+next = 0x10
+free = 0x18
  
         salloc 16
         sd a0,(sp)
@@ -129,11 +129,11 @@ free$ = 0x18
 
 pci_scan:
 
-pci_id$ = 0x0
-class_code$ = 0x4
-driver$ = 0x08
-next$ = 0x10
-free$ = 0x18
+pci_id = 0x0
+class_code = 0x4
+driver = 0x08
+next = 0x10
+free = 0x18
 
         salloc 32
         sd s1,0x0(sp)
@@ -150,7 +150,7 @@ free$ = 0x18
         li a3,0x0
         call pci_config
         lwu t0,(a0)
-#[g -- Loop through drivers
+#[g -- Loop through drivers --
         lwu t1,0x8(a0)
         srli t1,t1,0x10
         ld s3,pci_drivers
