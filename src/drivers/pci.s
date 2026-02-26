@@ -157,7 +157,7 @@ free = 0x18
 1:      sd t1,next(a0)
         sd a0,(t0)
 
-        sfree 16
+        sfree 32
         ret
 
 pci_scan:
@@ -220,7 +220,7 @@ free = 0x18
 
 pci_register_callback:
 #[ci [ a0 = *device: device_specific_struct, a1 = *callback: call, a2 = iqr ]
-        salloc 16
+        salloc 24
 #[g -- allocate pci_handler --
 
 device = 0x0
@@ -229,15 +229,17 @@ next = 0x10
 
         sd a0,(sp)
         sd a1,0x8(sp)
+        sd a2,0x10(sp)
 
         li a0,0x18
         call zalloc
-
         ld t0,(sp)
         sd t0,device(a0)
         ld t0,0x8(sp)
         sd t0,callback(a0)
-        addi t0,a2,-0x20
+        ld t0,0x10(sp)
+        addi t0,t0,-0x20
+        slli t0,t0,0x3
         la t1,pci_handlers
         add t0,t0,t1
         ld t1,(t0)
@@ -249,8 +251,36 @@ next = 0x10
 1:      sd t1,next(a0)
         sd a0,(t0)
         
+        sfree 24
+        ret
+
+pci_dispatch_interrupt:
+#[ci [ a0 = IRQ ID ]
+        salloc 16
+        sd s1,(sp)
+        sd a0,0x8(sp)
+
+        la t0,pci_handlers
+        addi t1,a0,-0x20
+        slli t1,t1,0x3
+
+        add t0,t0,t1
+        ld s1,(t0)
+
+1:      ld t0,0x8(s1)
+        ld a1,0x8(sp)
+        ld a0,(s1)
+
+        jalr ra,t0,0x0
+        beqz a0,1f
+        mv t0,s1
+        ld s1,0x10(t0)
+        bne s1,t0,1b
+
+1:      ld s1,(sp)
         sfree 16
         ret
+
 
 pci_config:
 #[ci    [ a0 = bus, a1 = slot, a2 = func, a3 = offset ]

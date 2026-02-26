@@ -164,7 +164,13 @@ External_Interrupt_Handler:
     save_all
     li a0,0x0
     call plic_claim_interrupt
-    slli t1,a0,0x2
+    li t0,0x20
+    blt a0,t0,1f
+    li t0,0x24
+    bgt a0,t0,2f
+    call pci_dispatch_interrupt
+2:  j External_Interrupt_Handler_end
+1:  slli t1,a0,0x2
     la t0,1f
     add t0,t0,t1
     jalr zero,t0,0x0

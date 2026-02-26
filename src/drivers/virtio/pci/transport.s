@@ -12,12 +12,13 @@
 .equ ISR_STATUS,0x10
 .equ DEVICE_CONFIG,0x18
 .equ NOTI_OFF_MULT,0x20
+.equ VQUEUE,0x28
+.equ RING_BUFFER,0x30
 
-.equ VQ_DESCRIPTOR_TABLE,0x28
-.equ VQ_AVAIL_RING,0x30
-.equ VQ_USED_RING,0x38
-
-.equ VQ_SIZE,0x40
+.equ VQ_DESCRIPTOR_TABLE,0x0
+.equ VQ_AVAIL_RING,0x8
+.equ VQ_USED_RING,0x10
+.equ VQ_SIZE,0x18
 
 virtio_pci_transport_init_device:
 #[ci [ a0 = address off config ]
@@ -25,9 +26,15 @@ virtio_pci_transport_init_device:
 
         sd a0,0x0(sp)
         
-        li a0,0x42
+        li a0,0x38
         call malloc
         sd a0,0x8(sp)
+
+        li a0,0x1a
+        call malloc
+        ld t0,0x8(sp)
+        sd a0,VQUEUE(t0)
+
         
         ld a0,0x0(sp)
         call virtio_pci_transport_get_regs
