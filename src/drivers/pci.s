@@ -84,7 +84,7 @@ pci_allocate_bar_to_mmio_region:
 
 pci_init:
 #[g -- allocate pci_handlers --
-
+        salloc 0
         li a0,0x20
         call zalloc
         la t0,pci_handlers
@@ -93,6 +93,8 @@ pci_init:
         la t0,pci_mmio_ptr
         li t1,PCI_MMIO_32
         sd t1,(t0)
+
+        sfree 0
         ret
 
 pci_get_bar_address:
@@ -121,17 +123,20 @@ driver = 0x08
 next = 0x10
 free = 0x18
  
-        salloc 16
+        salloc 32
         sd a0,(sp)
+        sd a1,0x8(sp)
+        sd a2,0x10(sp)
 
 #[g -- Allocate pci_driver structure --
         
         li a0,0x20
         call zalloc
-        sd a0,0x8(sp)
-        
-        sd a1,driver(a0)
-        sd a2,  free(a0)
+
+        ld t0,0x8(sp)
+        sd t0,driver(a0)
+        ld t0,0x10(sp)
+        sd t0,  free(a0)
 
 #[g -- Seperate device_id into pci_id and class codes --
 

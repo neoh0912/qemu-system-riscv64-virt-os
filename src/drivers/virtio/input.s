@@ -21,15 +21,16 @@
 
 .equ VIO_PCI_IN_VQUEUE_SIZE,0x40
 
-.local DEVICE_STATUS
-.equ DEVICE_STATUS,0x14
-.local DEVICE_FEATURE
-.equ DEVICE_FEATURE,0x4
-.local DRIVER_FEATURE
-.equ DRIVER_FEATURE,0xc
-
 virtio_input_handshake:
 #[ci [ a0 = *Capabilities ]
+
+DEVICE_STATUS = 0x14
+DEVICE_FEATURE_SELECT = 0x0
+DEVICE_FEATURE = 0x4
+DRIVER_FEATURE_SELECT = 0x8
+DRIVER_FEATURE = 0xc
+
+
         salloc 0
 
         ld t0,COMMON_CONFIG(a0)
@@ -41,9 +42,10 @@ virtio_input_handshake:
         li t1,0x3
         sb t1,DEVICE_STATUS(t0)
         fence io,io
+        li t1,0x1
+        sw t1,DEVICE_FEATURE_SELECT(t0)
+        sw t1,DRIVER_FEATURE_SELECT(t0)
         lwu t1,DEVICE_FEATURE(t0)
-        li t2,0x30000000
-        and t1,t1,t2
         sw t1,DRIVER_FEATURE(t0)
         fence io,io
         li t1,0xB
@@ -124,3 +126,64 @@ virtio_input_allocate_virtqueue:
         ld s1,(sp)
         sfree 40
         ret
+
+virtio_input_allocate_input_structs:
+#[ci [ a0 = descriptor_table, a1 = avail_ring, a2 = amount , a3 = queue_size]
+
+A0 = 0x0
+A1 = 0x8
+A2 = 0x10
+A3 = 0x18
+BUFFER = 0x20
+
+addr = 0x0
+len = 0x8
+flags = 0xc
+next = 0xe
+
+        salloc 40
+
+        sd a0,A0(sp)
+        sd a1,A1(sp)
+        sd a2,A2(sp)
+        sd a3,A3(sp)
+
+        slli a0,a2,0x3
+        call zalloc
+        sd a0,BUFFER(sp)
+        ld a3,A3(sp)
+        ld a2,A2(sp)
+
+        li t0,0x0
+        ld t1,BUFFER(sp)
+        ld t2,A0(sp)
+        ld t3,A1(sp)
+        lhu t4,0x2(t3)
+        slli t4,t4,0x1
+        addi t4,t4,0x4
+        add t4,t4,t3
+
+1:      sd t1,addr(t2)
+        li t5,0x8
+        sw t5,len(t2)
+        li t5,0x2
+        sh t5,flags(t2)
+        sh zero,next(t2)
+
+        addi t2,t2,0x10
+        
+        sh t0,(t4)
+
+        add t4,t4,0x2
+        addi t0,t0,0x1
+        blt t0,a2,1b
+
+        lhu t4,0x2(t3)
+        add t4,t4,a2
+        sh t4,0x2(t3)
+
+        fence w,w
+
+        sfree 40
+        ret
+
