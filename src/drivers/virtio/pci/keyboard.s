@@ -148,3 +148,4 @@ A0 = 0x0
         sw t2,write(a0)
         
 1:      ret
+
