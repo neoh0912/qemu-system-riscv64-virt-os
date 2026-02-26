@@ -8,6 +8,28 @@
 
 #[mi    [CODE]
 
+pci_set_interrupt_line:
+#[ci [ a0 = address, a1 = line ]
+        lwu t0,0x3c(a0)
+        li t1,0xFF
+        andn t0,t0,t1
+        and t1,a1,t1
+        or t0,t0,t1
+        sw t0,0x3c(a0)
+        ret
+
+pci_get_plic_id:
+#[ci [ a0 = address, a1 = device number ]
+        lwu t0,0x3c(a0)
+        srli t0,t0,0x8
+        andi t0,t0,0xFF
+        addi t0,t0,-1
+        add t0,t0,a1
+        li t1,0x4
+        remu t0,t0,t1
+        addi a0,t0,0x20
+        ret
+
 pci_allocate_bar_to_mmio_region:
 #[ci [ a0 = address, a1 = bar ]
         salloc 16
