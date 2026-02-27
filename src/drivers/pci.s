@@ -79,22 +79,25 @@ pci_allocate_bar_to_mmio_region:
         sw t1,(t0)
         fence io,io
        
-        sfree 16
+        sfree
         ret
 
 pci_init:
 #[g -- allocate pci_handlers --
         salloc 0
         li a0,0x20
-        call zalloc
+        call malloc
         la t0,pci_handlers
         sd a0,(t0)
+        li a2,0x20
+        mv a1,zero
+        call memset
 
         la t0,pci_mmio_ptr
         li t1,PCI_MMIO_32
         sd t1,(t0)
 
-        sfree 0
+        sfree
         ret
 
 pci_get_bar_address:
@@ -109,7 +112,7 @@ pci_get_bar_address:
         li t0,0xF
         andn a0,a0,t0
 
-        sfree 0
+        sfree
         ret
 
 pci_register_driver:
@@ -131,7 +134,10 @@ free = 0x18
 #[g -- Allocate pci_driver structure --
         
         li a0,0x20
-        call zalloc
+        call malloc
+        li a2,0x20
+        mv a1,zero
+        call memset
 
         ld t0,0x8(sp)
         sd t0,driver(a0)
@@ -157,7 +163,7 @@ free = 0x18
 1:      sd t1,next(a0)
         sd a0,(t0)
 
-        sfree 32
+        sfree
         ret
 
 pci_scan:
@@ -215,7 +221,7 @@ free = 0x18
 1:      ld s1, 0x0(sp)
         ld s2, 0x8(sp)
         ld s3, 0x10(sp)
-        sfree 32
+        sfree
         ret
 
 pci_register_callback:
@@ -232,7 +238,11 @@ next = 0x10
         sd a2,0x10(sp)
 
         li a0,0x18
-        call zalloc
+        call malloc
+        li a2,0x18
+        mv a1,zero
+        call memset
+        
         ld t0,(sp)
         sd t0,device(a0)
         ld t0,0x8(sp)
@@ -251,7 +261,7 @@ next = 0x10
 1:      sd t1,next(a0)
         sd a0,(t0)
         
-        sfree 24
+        sfree
         ret
 
 pci_dispatch_interrupt:
@@ -278,7 +288,7 @@ pci_dispatch_interrupt:
         bne s1,t0,1b
 
 1:      ld s1,(sp)
-        sfree 16
+        sfree
         ret
 
 

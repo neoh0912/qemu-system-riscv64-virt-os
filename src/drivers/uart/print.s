@@ -15,7 +15,7 @@ print_string:
 1:
     ld s3, 8(sp)        
     ld s2, 0(sp)
-    sfree 16
+    sfree
     ret
 
 print_newline:
@@ -26,7 +26,7 @@ print_newline:
     li a0,0xd
     call uart_putc
 
-    sfree 0    
+    sfree    
     ret
 
 print_int_hex:
@@ -37,7 +37,7 @@ print_int_hex:
     li a3,' '
     call print_number
 
-    sfree 0
+    sfree
     ret
 
 print_int_dec:
@@ -48,5 +48,5 @@ print_int_dec:
     li a3,' '
     call print_number
 
-    sfree 0
+    sfree
     ret

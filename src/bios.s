@@ -11,7 +11,7 @@ bios_handle_input:
     bne a0,t0,2f
     call bios_escape_sequence
 2:  call uart_putc    
-    sfree 0
+    sfree
     ret
 
 bios_escape_sequence:
@@ -28,7 +28,7 @@ bios_escape_sequence:
     bne a0,t0,2f
     call bios_read_disk
 2:    
-    sfree 0
+    sfree
     ret
 
 bios_write_disk:
@@ -48,7 +48,7 @@ bios_write_disk:
     call ivshmem_sb
     call print_newline
 
-    sfree 8   
+    sfree
     ret
 
 bios_read_disk:
@@ -74,7 +74,7 @@ bios_read_disk:
     la a0,bios_input_buffer
     call print_string    
     call print_newline
-    sfree 8   
+    sfree
     ret
 
 
@@ -122,7 +122,7 @@ bios_input_hex:
 
     ld s4,8(sp)
     ld s3,(sp)
-    sfree 16
+    sfree
     ret
 
 bios_input_int:
@@ -166,7 +166,7 @@ bios_input_int:
 
     ld s4,8(sp)
     ld s3,(sp)
-    sfree 16
+    sfree
     ret
 
 bios_input_string:
@@ -196,5 +196,5 @@ bios_input_string:
 2:  mv a0,s4
     ld s4,8(sp)
     ld s3,(sp)
-    sfree 16
+    sfree
     ret

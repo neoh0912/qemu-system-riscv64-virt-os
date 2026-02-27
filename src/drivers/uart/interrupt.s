@@ -10,5 +10,5 @@ uart_interrupt:
         li a0,0x0
 
         call plic_complete_interrupt
-        sfree 8
+        sfree
         j External_Interrupt_Handler_end

@@ -17,7 +17,7 @@ machine_fault_E25_str:  .string "Instruction parity/checksum fault\n\r"
 machine_fault_uart_interupt_str: .string "Uart Interupt"
 
 machine_fault_heap_str: .string "\x1b[7mHEAP:\x1b[0m\n\r"
-machine_heap_fstr: .string "%s: &%x, %8u blocks, %9x bytes]\x1b[0m\n\r"
+machine_heap_fstr: .string "%s: &%x, %9x bytes]\x1b[0m\n\r"
 machine_heap_alloc_str: .string "[Chunk"
 machine_heap_free_str: .string "\x1b[7;32m[Free Chunk"
 

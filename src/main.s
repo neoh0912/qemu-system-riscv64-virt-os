@@ -7,9 +7,7 @@
 .equ FIFO_CONTROL_REGISTER,     0x2
 .equ INTERRUPT_ENABLE_REGISTER, 0x1
 .equ LINE_STATUS_DATA_READY,    0x1
-.equ HEAP_LIST_SIZE, 0x400000
-.equ HEAP_BLOCK_SIZE, 64
-.equ HEAP_SIZE, HEAP_LIST_SIZE*HEAP_BLOCK_SIZE
+.equ HEAP_SIZE, 0x10000000
 
 #[gi    [macros]
 .include "macros.s"
@@ -27,13 +25,15 @@ HEX: .ascii "0123456789ABCDEF"
 #[yi    [ BSS ]
         .section .bss
         .align 16
-.include "bss/heap.s"
-.include "bss/stack.s"
 .include "bss/vga.s"
 .include "bss/pci.s"
 .include "bss/uart.s"
 .include "bss/ivshmem.s"
 .include "bss/bios.s"
+        .align 16
+.include "bss/stack.s"
+        .align 16
+.include "bss/heap.s"
 
 #[mi    [Program]
         .section .text.start
@@ -62,6 +62,8 @@ HEX: .ascii "0123456789ABCDEF"
         .section .text.memory
 .include "memory/memcpy.s"
 .include "memory/heap.s"
+.include "memory/kernel.s"
+.include "memory/memset.s"
         .section .text.machine
 .include "machine.s"
         .section .text.bios

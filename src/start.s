@@ -13,7 +13,7 @@ _start:
 
     
     call machine_init
-    call heap_init
+    call kernel_heap_init
     call uart_init
     call pci_init
 #    call ivshmem_init

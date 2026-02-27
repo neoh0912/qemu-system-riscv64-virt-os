@@ -45,15 +45,17 @@ DRIVER_FEATURE = 0xc
 1:      li t1,0xF
         sb t1,DEVICE_STATUS(a0)
 
-        sfree 0
+        sfree
         ret
 
 virtio_input_allocate_virtqueue:
 #[ci [ a0 = *VQUEUE, a1 = *VREGS ]
         salloc 40
+        sald 1
         sd s1,(sp)
         sd a0,0x8(sp)
         sd a1,0x10(sp)
+        sd s2,0x18(sp)
 
         sh zero,0x16(a1)
         lhu t1,0x18(a1)
@@ -61,21 +63,36 @@ virtio_input_allocate_virtqueue:
         minu s1,t1,t2
         sh s1,VQ_SIZE(a0)
         slli a0,s1,0x4
-        call zalloc
+        mv s2,a0
+        li a1,0x1000
+        call malloc_aligned
+        mv a2,s2
+        mv a1,zero
+        call memset
         mv t0,a0
         ld a0,0x8(sp)
         sd t0,VQ_DESCRIPTOR_TABLE(a0)
 
         slli a0,s1,0x1
         addi a0,a0,6
-        call zalloc
+        mv s2,a0
+        li a1,0x1000
+        call malloc_aligned
+        mv a2,s2
+        mv a1,zero
+        call memset
         mv t0,a0
         ld a0,0x8(sp)
         sd t0,VQ_AVAIL_RING(a0)
 
         slli a0,s1,0x3
         addi a0,a0,6
-        call zalloc
+        mv s2,a0
+        li a1,0x1000
+        call malloc_aligned
+        mv a2,s2
+        mv a1,zero
+        call memset
         mv t0,a0
         ld a0,0x8(sp)
         sd t0,VQ_USED_RING(a0)
@@ -107,7 +124,7 @@ virtio_input_allocate_virtqueue:
         sh t1,0x1c(a1)
 
         ld s1,(sp)
-        sfree 40
+        sfree
         ret
 
 virtio_input_allocate_input_structs:
@@ -121,14 +138,19 @@ flags = 0xc
 next = 0xe
 
         salloc 40
+        sald 1
+        sd s1,0x10(sp)
         sd a0,(sp)
-
-        ld a0,VQ_SIZE(a0)
+        lhu a0,VQ_SIZE(a0)
         slli a0,a0,0x3
-        call zalloc
+        mv s1,a0
+        call malloc
+        mv a2,s1
+        mv a1,zero
+        call memset
         sd a0,BUFFER(sp)
         ld a0,A0(sp)
-        ld a2,VQ_SIZE(a0)
+        lhu a2,VQ_SIZE(a0)
 
         li t0,0x0
         ld t1,BUFFER(sp)
@@ -138,14 +160,13 @@ next = 0xe
         slli t4,t4,0x1
         addi t4,t4,0x4
         add t4,t4,t3
-
 1:      sd t1,addr(t2)
         li t5,0x8
         sw t5,len(t2)
         li t5,0x2
         sh t5,flags(t2)
         sh zero,next(t2)
-
+        
         addi t2,t2,0x10
         
         sh t0,(t4)
@@ -161,7 +182,8 @@ next = 0xe
 
         fence w,w
 
-        sfree 40
+        ld s1,0x10(sp)
+        sfree
         ret
 
 virtio_input_read_used_ring:
@@ -231,5 +253,5 @@ ring = 0x4
         ld s4,0x30(sp)
         ld s5,0x38(sp)
         ld s6,0x40(sp)
-        sfree (24+8*6)
+        sfree 
         ret

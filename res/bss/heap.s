@@ -1,2 +1,2 @@
-heap_list: .space HEAP_LIST_SIZE*4
-heap: .space HEAP_SIZE
+.global heap_start
+heap_start: .space HEAP_SIZE

@@ -90,5 +90,5 @@ print_number:
         ld   s5,  16(sp)
         ld   s4,   8(sp)
         ld   s3,   0(sp)
-        sfree 32
+        sfree
         ret

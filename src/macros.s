@@ -4,10 +4,22 @@
         mv   fp, sp
         addi sp, sp, (-16 -\n)
 .endm
-.macro sfree n
-        ld   ra,  -8(fp)
-        ld   fp, -16(fp)
-        addi sp, sp, (\n+16)
+.macro salb n
+        addi sp,sp,-(\n)
+.endm
+.macro salh n
+        addi sp,sp,-(2*(\n))
+.endm
+.macro salw n
+        addi sp,sp,-(4*(\n))
+.endm
+.macro sald n
+        addi sp,sp,-(8*(\n))
+.endm
+.macro sfree
+        mv   sp, fp
+        ld   fp, -16(sp)        
+        ld   ra,  -8(sp)
 .endm
 .macro save_all
     sd x2,-240(sp)

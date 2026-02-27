@@ -28,7 +28,7 @@ vga_init:
         la t0,vga_buffer
         sd a0,(t0)
 
-        sfree 0
+        sfree
         ret
 
 vga_boch_init:
@@ -64,7 +64,7 @@ vga_boch_init:
 
         
 
-        sfree 0
+        sfree
         ret
 
 vga_init_pci:
@@ -86,5 +86,5 @@ vga_init_pci:
         la t0,vga_mmio_ptr
         sd a0,(t0)
         
-        sfree 16
+        sfree
         ret

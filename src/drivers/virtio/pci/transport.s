@@ -32,7 +32,10 @@ virtio_pci_transport_init_device:
         sd a0,0x8(sp)
 
         li a0,0x22
-        call zalloc
+        call malloc
+        li a2,0x22
+        mv a1,zero
+        call memset
         ld t0,0x8(sp)
         sd a0,VQUEUE(t0)
 
@@ -49,7 +52,7 @@ virtio_pci_transport_init_device:
 
         ld a0,0x8(sp)
 
-        sfree 16
+        sfree
         ret
 
 virtio_pci_transport_get_regs:
@@ -119,5 +122,5 @@ virtio_pci_transport_get_regs:
         
         ld s1,0x38(sp)
         ld s2,0x40(sp)
-        sfree 72
+        sfree
         ret

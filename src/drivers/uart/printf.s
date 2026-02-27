@@ -123,5 +123,5 @@ printf:
 9:      ld   s5,  16(sp)
         ld   s4,   8(sp)
         ld   s3,   0(sp)
-        sfree 64
+        sfree
         ret        

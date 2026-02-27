@@ -25,5 +25,5 @@ bounce:
     call vga_write_rect
     call vga_flush
 
-    sfree 0
+    sfree
     ret

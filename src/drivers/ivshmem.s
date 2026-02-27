@@ -53,7 +53,7 @@
 #        ld a0,(sp)
 #        call pci_write_config
 #
-#        sfree 16
+#        sfree
 #        ret
 
 ivshmem_address_out_of_bounds_error:
@@ -66,7 +66,7 @@ ivshmem_address_out_of_bounds_error:
 
         ebreak
 
-        sfree 16
+        sfree
         ret
 
 

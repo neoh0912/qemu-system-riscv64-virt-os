@@ -32,5 +32,5 @@ uart_get:
 
         j 1b
 1:      call uart_queue_pop
-        sfree 0
+        sfree
         ret

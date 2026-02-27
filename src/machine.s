@@ -221,44 +221,40 @@ machine_print_heap:
     sd s2,8(sp)
     sd s3,16(sp)
 
-    la s1,heap_list
-    li s2,0x0
-    li s3,HEAP_LIST_SIZE
-    
-1:  lwu t0,(s1)
-    andi t1,t0,0x2
-    beqz t1,2f
-    
-    addi sp,sp,-32
+    la s1,heap_start
+
+1:  addi sp,sp,-24
     
     la a0,machine_heap_fstr
     mv a1,sp
 
-    andi t1,t0,0x1
+    lwu t1,0x4(s1)
     beqz t1,3f
     la t6,machine_heap_alloc_str
     j 4f
 3:  la t6,machine_heap_free_str
 4:  sd t6,(sp)
-    sd s1,8(sp)
-    srli t0,t0,0x2
+    addi t6,s1,0x18
+    li t2,0x2
+    bne t1,t2,5f
+    addi t6,t6,0x8  
+5:  sd t6,8(sp)
+    lwu t0,0x0(s1)
     sd t0,16(sp)
-    li t2,HEAP_BLOCK_SIZE
-    mul t0,t0,t2
-    sd t0,24(sp)
     
     call printf
     
-    addi sp,sp,32
+    addi sp,sp,24
     
-2:  addi s1,s1,0x4
-    addi s2,s2,0x1
-    blt s2,s3,1b  
+2:  mv t1,s1
+    ld s1,0x8(t1)
+    bge s1,t1,1b
+    
 
     ld s1,(sp)
     ld s2,8(sp)
     ld s3,16(sp)
-    sfree 24
+    sfree
     ret
 
 machine_wfi:
@@ -266,7 +262,7 @@ machine_wfi:
 
     call bounce
 
-    sfree 0
+    sfree
     ret
 
 machine_print_stack:
@@ -290,6 +286,6 @@ machine_print_stack:
     addi s3,s3,0x8
     blt s1,s2,1b
 
-    sfree 0
+    sfree
     ret
     

@@ -27,7 +27,7 @@ vga_flush:
         ld t2,0x10(sp)
         ld t3,0x18(sp)
 
-        sfree 64
+        sfree
 
         ret
 
@@ -70,5 +70,5 @@ vga_write_rect:
         ld s4,0x18(sp)
         ld s5,0x20(sp)
         
-        sfree 58
+        sfree
         ret

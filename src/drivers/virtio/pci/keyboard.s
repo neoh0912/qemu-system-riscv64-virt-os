@@ -75,9 +75,13 @@ DEVICE = 0x20
         call virtio_input_allocate_input_structs
 
         li a0,KEY_RING_BUFFER_SIZE*8+0x8
-        call zalloc
+        call malloc
+        li a2,KEY_RING_BUFFER_SIZE*8+0x8
+        mv a1,zero
+        call memset
         ld t0,DEVICE(sp)
         sd a0,RING_BUFFER(t0)
+        call print_int_hex
         ld t0,DEVICE(sp)
         li t1,KEY_RING_BUFFER_SIZE
         sd t1,(t0)
@@ -86,7 +90,7 @@ DEVICE = 0x20
         sh zero,(t1)
         fence w,w
 
-        sfree 40
+        sfree
         ret
 
 virtio_pci_keyboard_callback:
@@ -121,7 +125,7 @@ virtio_pci_keyboard_callback:
 
 9:      li a0,0x1
 8:      ld s1,0x8(sp)
-        sfree 16
+        sfree
         ret
 
 virtio_pci_keyboard_append_ring:

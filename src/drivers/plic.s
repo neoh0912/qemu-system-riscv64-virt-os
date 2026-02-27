@@ -19,7 +19,7 @@ plic_enable:
         or t2,t2,t3
         sw t2,(t1)
 
-        sfree 0
+        sfree
         ret
 
 plic_set_prio:
@@ -31,7 +31,7 @@ plic_set_prio:
         add t0,t0,t1
         sw a1, (t0)
 
-        sfree 0
+        sfree
         ret
 
 plic_set_prio_thres:
@@ -46,7 +46,7 @@ plic_set_prio_thres:
         add t1,t1,t0
         sw a1, 0(t1)
 
-        sfree 0
+        sfree
         ret
 
 plic_get_ipb:
@@ -57,7 +57,7 @@ plic_get_ipb:
         add t0,t0,t1
         lwu a0,(t0)
 
-        sfree 0
+        sfree
         ret
 
 plic_claim_interrupt:
@@ -72,7 +72,7 @@ plic_claim_interrupt:
         add t0,t0,t1
         lwu a0,(t0)
         
-        sfree 0
+        sfree
         ret
 
 plic_complete_interrupt:
@@ -87,6 +87,6 @@ plic_complete_interrupt:
         add t0,t0,t1
         sw a1,(t0)
         
-        sfree 0
+        sfree
         ret
 

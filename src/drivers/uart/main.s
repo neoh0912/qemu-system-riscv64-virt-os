@@ -44,7 +44,7 @@ uart_init:
         mv a0,zero
         mv a1,zero
         call plic_set_prio_thres
-        sfree 0
+        sfree
         ret
 
 uart_queue_push:
