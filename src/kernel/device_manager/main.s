@@ -87,6 +87,38 @@ next = 0x18
 1:      mv a0,t0
         ret        
 
+device_manager_get_device:
+#[ci [ device_type, id ]
+device_type = 0x0
+start = 0x8
+next = 0x18
+id = 0x0
+        ld t0,device_manager_device_tree_root
+1:      ld t1,device_type(t0)
+        beq t1,a0,1f
+        mv t1,t0
+        ld t0,next(t1)
+        bnez t0,1b
+9:      li a0,0x0
+        j 9f
+        
+1:      ld t0,start(t0)
+
+1:      beqz t0,9b
+        
+        ld t1,id(t0)
+        bne t1,a1,2f
+
+        mv a0,t0
+        j 9f
+
+2:      mv t1,t0
+next = 0x30
+        ld t0,next(t1)
+        j 1b
+
+9:      ret
+
 device_manager_register_device:
 #[ci [ device: *void, read, write, ioctl: *function, device_type: char[8] ]
 _id = 0x0

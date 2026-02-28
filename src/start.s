@@ -26,9 +26,20 @@ _start:
 
     call device_manager_scan
 
-    call device_manager_print_devices
-    call print_newline
-    ebreak
+    li a0,0x0
+    li a1,1280
+    la a2,1080
+    call display_set_resolution
+
+    li a0,1280*1080*4
+    call malloc
+    mv s11,a0
+    li a1,0xFF
+    li a2,1280*1080*4
+    call memset
+    mv a1,s11
+    li a0,0x0
+    call display_write_buffer
 
 loop:
     wfi

@@ -260,8 +260,6 @@ machine_print_heap:
 machine_wfi:
     salloc 0
 
-    call bounce
-
     sfree
     ret
 

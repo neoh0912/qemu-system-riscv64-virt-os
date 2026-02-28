@@ -63,6 +63,7 @@ HEX: .ascii "0123456789ABCDEF"
         .section .text.kernel
 .include "kernel/device_manager/main.s"
 .include "kernel/device_manager/debug.s"
+.include "kernel/device_manager/display.s"
         .section .text.memory
 .include "memory/memcpy.s"
 .include "memory/heap.s"
@@ -74,5 +75,4 @@ HEX: .ascii "0123456789ABCDEF"
         .section .text.bios
 .include "bios.s"
         .section .text.programs
-.include "programs/bounce.s"
     .section .text.end

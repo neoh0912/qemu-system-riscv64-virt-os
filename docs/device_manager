@@ -35,4 +35,16 @@ keyboard
     void write()
             not implemented
     void ioctl()
-            nor implemented
+            not implemented
+
+display
+    void read()
+        not implemented
+    void write(device: *device_object, operation: char)
+        '\0' = write buffer
+            void write(...,buffer words[])
+    void ioctl(device: *device_object, operation, char)
+        '\0' read resolution
+            qword qword ioctl(...)
+        '\1' set resolution
+            void ioctl(...,x,y)

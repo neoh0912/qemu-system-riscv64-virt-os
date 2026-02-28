@@ -1,3 +1,4 @@
+sizeof_device = 0x18
 .equ VBE_DISPI_INDEX_ID, 0
 .equ VBE_DISPI_INDEX_XRES, 1
 .equ VBE_DISPI_INDEX_YRES, 2
@@ -9,8 +10,8 @@
 .equ VBE_DISPI_INDEX_X_OFFSET, 8
 .equ VBE_DISPI_INDEX_Y_OFFSET, 9
 
-.equ VGA_XRES,1280
-.equ VGA_YRES,1080
+.equ VGA_XRES,640
+.equ VGA_YRES,480
 .equ VGA_BPP,32
 
 vga_init:
@@ -43,8 +44,31 @@ vga_init_device:
 vga_read:
         ret
 vga_write:
+#[ci [ device, op, ... ]
+        salloc 0
+        li t0,0x0
+        bne a1,t0,1f
+        mv a1,a2
+        call vga_write_buffer
+        j 9f
+1:        
+9:      sfree
         ret
+
 vga_ioctl:
+#[ci [ device, op, ... ]
+        salloc 0
+        li t0,0x0
+        bne a1,t0,1f
+        j 9f
+1:      li t0,0x1
+        bne a1,t0,1f
+        mv a1,a2
+        mv a2,a3
+        call vga_set_resolution
+        j 9f
+1:        
+9:      sfree
         ret
 
 vga_boch_init:
@@ -63,8 +87,7 @@ mmio = 0x8
         #[ci [ Disable VBE Extentions ]
 1:      sh zero,(VBE_DISPI_INDEX_ENABLE << 1)(t1)
 
-        fence rw,rw
-        fence io,io
+        fence w,w
 
         #[ci [ Set resolution and bit depth]
         li t0,VGA_XRES
@@ -74,8 +97,7 @@ mmio = 0x8
         li t0,VGA_BPP
         sh t0,(VBE_DISPI_INDEX_BPP << 1)(t1)
 
-        fence rw,rw
-        fence io,io
+        fence w,w
         
         #[ci [ Enable VBE Extentions ]
         li t0,0xc1
@@ -86,14 +108,50 @@ mmio = 0x8
         sfree
         ret
 
+vga_set_resolution:
+#[ci [ device, x, y ]
+mmio = 0x8
+res_x = 0x10
+res_y = 0x14
+        sw a1,res_x(a0)
+        sw a2,res_y(a0)
+        ld t0,mmio(a0)
+        
+        addi t1,t0,0x500 # bochs dispi interface registers
+
+        lhu t2,(VBE_DISPI_INDEX_ID << 1)(t1)
+        li t3,0xB0C5
+        beq t2,t3,1f
+        #[ci [ Disable VBE Extentions ]
+1:      sh zero,(VBE_DISPI_INDEX_ENABLE << 1)(t1)
+
+        fence w,w
+
+        #[ci [ Set resolution ]
+        sh a1,(VBE_DISPI_INDEX_XRES << 1)(t1)
+        sh a2,(VBE_DISPI_INDEX_YRES << 1)(t1)
+
+        fence w,w
+        
+        #[ci [ Enable VBE Extentions ]
+        li t0,0xc1
+        sh t0,(VBE_DISPI_INDEX_ENABLE << 1)(t1)
+
+         
+        
+        ret
+        
 vga_init_pci:
 #[ci [ a0 = address of config space ]
 fb = 0x0
 mmio = 0x8
+res_x = 0x10
+res_y = 0x14
         salloc 16
+        
         sd a0,(sp)
 
-        li a0,0x10
+        li a0,sizeof_device
         call malloc
         sd a0,0x8(sp)
 
@@ -111,3 +169,64 @@ mmio = 0x8
         mv a0,t0
         sfree
         ret
+
+vga_write_buffer:
+#[ci [ device, buffer: *void ]
+fb = 0x0
+res_x = 0x10
+res_y = 0x14
+        ld t0,fb(a0)
+        lwu t1,res_x(a0)
+        lwu t2,res_y(a0)
+        mul t1,t1,t2
+        li t3,0x20
+        remu t2,t1,t3
+        divu t1,t1,t3
+
+1:      ld t3,0x00(a1)
+        sd t3,0x00(t0)
+        ld t3,0x08(a1)
+        sd t3,0x08(t0)
+        ld t3,0x10(a1)
+        sd t3,0x10(t0)
+        ld t3,0x18(a1)
+        sd t3,0x18(t0)
+        ld t3,0x20(a1)
+        sd t3,0x20(t0)
+        ld t3,0x28(a1)
+        sd t3,0x28(t0)
+        ld t3,0x30(a1)
+        sd t3,0x30(t0)
+        ld t3,0x38(a1)
+        sd t3,0x38(t0)
+        ld t3,0x40(a1)
+        sd t3,0x40(t0)
+        ld t3,0x48(a1)
+        sd t3,0x48(t0)
+        ld t3,0x50(a1)
+        sd t3,0x50(t0)
+        ld t3,0x58(a1)
+        sd t3,0x58(t0)
+        ld t3,0x60(a1)
+        sd t3,0x60(t0)
+        ld t3,0x68(a1)
+        sd t3,0x68(t0)
+        ld t3,0x70(a1)
+        sd t3,0x70(t0)
+        ld t3,0x78(a1)
+        sd t3,0x78(t0)
+        addi a1,a1,0x80
+        addi t0,t0,0x80
+        addi t1,t1,-1
+        bgtz t1,1b
+        ebreak
+
+1:      beqz t2,1f
+        lwu t3,0x00(a1)
+        sw t3,0x00(t0)
+        addi a1,a1,0x4
+        addi t0,t0,0x4
+        addi t2,t2,-1
+        j 1b
+        
+1:      ret
