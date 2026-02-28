@@ -25,6 +25,18 @@
 .equ KEY_RING_BUFFER_SIZE,0x20
 
 virtio_pci_keyboard_init:
+VIO_PCI_INPUT_ID = 0x090010521af4
+        salloc 0
+        li a0,VIO_PCI_INPUT_ID
+        la a1,virtio_pci_keyboard_init_device
+        mv a2,zero
+keyboard = 0x6472616F6279656B        
+        li a3,keyboard
+        call pci_register_driver
+        sfree
+        ret
+
+virtio_pci_keyboard_init_device:
 #[ci [ a0 = address of config space , a1 = bus #, a2 = device #]
         salloc 40
 
@@ -81,14 +93,17 @@ DEVICE = 0x20
         call memset
         ld t0,DEVICE(sp)
         sd a0,RING_BUFFER(t0)
-        call print_int_hex
-        ld t0,DEVICE(sp)
         li t1,KEY_RING_BUFFER_SIZE
         sd t1,(t0)
 
         ld t1,NOTIFICATION(t0)
         sh zero,(t1)
         fence w,w
+
+        ld a0,DEVICE(sp)
+        la a1,virtio_pci_keyboard_read
+        la a2,virtio_pci_keyboard_write
+        la a3,virtio_pci_keyboard_ioctl
 
         sfree
         ret
@@ -126,6 +141,13 @@ virtio_pci_keyboard_callback:
 9:      li a0,0x1
 8:      ld s1,0x8(sp)
         sfree
+        ret
+
+virtio_pci_keyboard_read:
+        ret
+virtio_pci_keyboard_write:
+        ret
+virtio_pci_keyboard_ioctl:
         ret
 
 virtio_pci_keyboard_append_ring:

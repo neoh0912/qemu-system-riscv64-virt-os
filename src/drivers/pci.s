@@ -2,6 +2,7 @@
 .equ    PCI_ECAM,    0x30000000
 .equ    PCI_MMIO_32, 0x40000000
 .equ    PCI_MMIO_64, 0x4000000000
+sizeof_driver = 0x28
 
 #[c     [LOCALS]
 
@@ -116,24 +117,27 @@ pci_get_bar_address:
         ret
 
 pci_register_driver:
-#[ci [ a0 = id: device_id,  a1 = *driver: call , a2 = *free: call]
+#[ci [ a0 = id: device_id,  a1 = *driver: call , a2 = *free: call, a3 = device_type: v char[8]]
 #[c  device_id = (CLASS_CODE)[40-47](SUB_CLASS)[32-39]
 #[c               (DEVICE_ID)[16-31](VENDOR_ID)[0-15]
 
 pci_id = 0x0
 class_code = 0x4
-driver = 0x08
-next = 0x10
-free = 0x18
+device_id = 0x8
+driver = 0x10
+next = 0x18
+free = 0x20
  
         salloc 32
+        sald 1
         sd a0,(sp)
         sd a1,0x8(sp)
         sd a2,0x10(sp)
+        sd a3,0x18(sp)
 
 #[g -- Allocate pci_driver structure --
         
-        li a0,0x20
+        li a0,sizeof_driver
         call malloc
         li a2,0x20
         mv a1,zero
@@ -143,6 +147,8 @@ free = 0x18
         sd t0,driver(a0)
         ld t0,0x10(sp)
         sd t0,  free(a0)
+        ld t0,0x18(sp)
+        sd t0,device_id(a0)
 
 #[g -- Seperate device_id into pci_id and class codes --
 
@@ -170,10 +176,10 @@ pci_scan:
 
 pci_id = 0x0
 class_code = 0x4
-driver = 0x08
-next = 0x10
-free = 0x18
-
+device_id = 0x8
+driver = 0x10
+next = 0x18
+free = 0x20
         salloc 32
         sd s1,0x0(sp)
         sd s2,0x8(sp)
@@ -203,6 +209,9 @@ free = 0x18
         mv a1,s1
         mv a2,s2
         jalr ra,t2,0x0
+        ld a4,device_id(s3)
+        call device_manager_register_device
+        
         j 4f   
 
 3:      mv t2,s3
@@ -290,7 +299,6 @@ pci_dispatch_interrupt:
 1:      ld s1,(sp)
         sfree
         ret
-
 
 pci_config:
 #[ci    [ a0 = bus, a1 = slot, a2 = func, a3 = offset ]

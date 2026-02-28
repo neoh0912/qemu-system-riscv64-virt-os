@@ -21,7 +21,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "data/bios.s"
 .include "data/ivshmem.s"
 .include "data/machine.s"
-
+.include "data/device_manager.s"
 #[yi    [ BSS ]
         .section .bss
         .align 16
@@ -30,6 +30,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "bss/uart.s"
 .include "bss/ivshmem.s"
 .include "bss/bios.s"
+.include "bss/device_manager.s"
         .align 16
 .include "bss/stack.s"
         .align 16
@@ -59,11 +60,16 @@ HEX: .ascii "0123456789ABCDEF"
 .include "drivers/virtio/pci/transport.s"
 .include "drivers/virtio/pci/keyboard.s"
 .include "drivers/virtio/input.s"
+
+        .section .text.kernel
+.include "kernel/device_manager/main.s"
+.include "kernel/device_manager/debug.s"
         .section .text.memory
 .include "memory/memcpy.s"
 .include "memory/heap.s"
 .include "memory/kernel.s"
 .include "memory/memset.s"
+.include "memory/align.s"
         .section .text.machine
 .include "machine.s"
         .section .text.bios

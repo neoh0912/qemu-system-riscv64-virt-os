@@ -1,5 +1,3 @@
-.equ VGA_ID,0x11111234
-
 .equ VBE_DISPI_INDEX_ID, 0
 .equ VBE_DISPI_INDEX_XRES, 1
 .equ VBE_DISPI_INDEX_YRES, 2
@@ -16,25 +14,46 @@
 .equ VGA_BPP,32
 
 vga_init:
+    salloc 0
+vga_id = 0x038011111234
+    li a0,vga_id
+    la a1,vga_init_device
+    mv a2,zero
+display = 0x0079616C70736964
+    li a3,display
+    call pci_register_driver
+    sfree
+    ret
+
+vga_init_device:
+#[ci [ a0 = address of config space , a1 = bus #, a2 = device # ]
         salloc 0
-
+        sald 1
         call vga_init_pci
-
+        sd a0,(sp)    
         call vga_boch_init
-
-        li a0,4*1280*1080
-        call malloc
-
-        la t0,vga_buffer
-        sd a0,(t0)
+        ld a0,(sp)
+        la a1,vga_read
+        la a2,vga_write
+        la a3,vga_ioctl
 
         sfree
         ret
 
+vga_read:
+        ret
+vga_write:
+        ret
+vga_ioctl:
+        ret
+
 vga_boch_init:
+#[ci [ device ]
+fb = 0x0
+mmio = 0x8
         salloc 0
-        la t0,vga_mmio_ptr
-        ld t0,(t0)
+
+        ld t0,mmio(a0)
         
         addi t1,t0,0x500 # bochs dispi interface registers
 
@@ -68,23 +87,27 @@ vga_boch_init:
         ret
 
 vga_init_pci:
+#[ci [ a0 = address of config space ]
+fb = 0x0
+mmio = 0x8
         salloc 16
-
-        li a0,VGA_ID
-        call pci_scan
         sd a0,(sp)
 
+        li a0,0x10
+        call malloc
+        sd a0,0x8(sp)
+
+        ld a0,(sp)
         li a1,0x0
         call pci_allocate_bar_to_mmio_region
-        la t0,vga_frame_buffer_ptr
-        sd a0,(t0)
+        ld t0,0x8(sp)
+        sd a0,fb(t0)
         
         ld a0,(sp)
-
         li a1,0x2
         call pci_allocate_bar_to_mmio_region
-        la t0,vga_mmio_ptr
-        sd a0,(t0)
-        
+        ld t0,0x8(sp)
+        sd a0,mmio(t0)
+        mv a0,t0
         sfree
         ret

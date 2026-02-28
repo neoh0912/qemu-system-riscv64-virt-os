@@ -1,6 +1,33 @@
-header:
-0x00 size
-0x04 is allocated
-0x08 next
-0x10 previus
+
+struct header {
+    word size,
+    word alloc,
+    dword next,
+    dword prev,
+}
+
+
+allocate
+
+size += sizeof(header)
+a_size = size+align-1
+current = heap_start
+
+while (current = find_next_free(current,a_size)) do
+    ptr = current + sizeof(header)
+    ptr = align(ptr,align) - sizeof(header)
+    space = ptr - current
+    if space > 0 and space < sizeof(header) then
+        if (current = current.next) then
+            continue
+        end
+    end
+    if space == 0 then
+    
+    else
+        
+    end    
+    
+
+end
 

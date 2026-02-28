@@ -1,3 +1,5 @@
+sizeof_header = 0x18
+
 heap_init:
 #[ci [ a0 = start, a1 = size ]
 size = 0x0
@@ -8,111 +10,210 @@ prev = 0x10
 
         sw a1,size(a0)
         sw zero,alloc(a0)
-        sd a0,next(a0)
+        sd zero,next(a0)
         sd a0,prev(a0)
 
         sfree
         ret
 
-heap_alloc:
-#[ci [ a0 = heap, a1 = size, a2 = alloc ]
-A0 = 0x0
-A1 = 0x8
+heap_find_next_free:
+#[ci [ current: *header, size: int ]
 size = 0x0
 alloc = 0x4
 next = 0x8
 prev = 0x10
         salloc 0
-        sald 2
-        sd a0,A0(sp)
-        sd a1,A1(sp)
-#        ebreak
-        call heap_find_free
+
         mv t0,a0
-        bnez t0,1f
-        ebreak
-        
-1:      ld a1,A1(sp)
-        add t1,t0,a1
-        lwu t2,size(t0)
-        sub t2,t2,a1
-        ld t3,next(t0)
-        
-        sw a2,alloc(t0)
-        sw a1,size(t0)
-        sd t1,next(t0)
 
-        sw t2,size(t1)
-        sw zero,alloc(t1)
-        sd t3,next(t1)
-        sd t0,prev(t1)
-
-        mv a0,t0
-        
-        sfree
-        ret
-
-heap_find_free:
-#[ci [ a0 = heap, a1 = size ]
-size = 0x0
-alloc = 0x4
-next = 0x8
-prev = 0x10
-        salloc 0
-        
-        mv t0,a0
 1:      lwu t1,alloc(t0)
         bnez t1,2f
         lwu t1,size(t0)
         blt t1,a1,2f
         mv a0,t0
         j 3f
-
+        
 2:      mv t1,t0
         ld t0,next(t1)
-        bne t0,t1,1b
+        bnez t0,1b
         li a0,0x0
         
-
 3:      sfree
         ret
 
-heap_dealloc:
-#[ci [ a0 = heap, a1 = ptr ]
+heap_split_header:
+#[ci [ header: *header, size: int ]
+size = 0x0
+alloc = 0x4
+next = 0x8
+prev = 0x10
+        mv t0,a0
+        add t1,t0,a1
+        ld t2,next(t0)
+        lwu t3,size(t0)
+        sub t3,t3,a1
+        sw a1,size(t0)
+        sw t3,size(t1)
+        sd t1,next(t0)
+        sd t2,next(t1)
+        sd t0,prev(t1)
+        beqz t2,1f
+        
+        sd t1,prev(t2)
+        
+1:      mv a0,t0
+        mv a1,t1
+        ret
+
+
+heap_alloc:
+#[ci [ heap: *header, size: int ]
+_heap = 0x0
+_size = 0x8
+alloc = 0x4
+        salloc 0
+        sald 2
+        sd a0,_heap(sp)
+        addi a1,a1,sizeof_header
+        sd a1,_size(sp)
+
+        call heap_find_next_free
+        beqz a0,1f
+        ld a1,_size(sp)
+        call heap_split_header
+        sw zero,alloc(a1)
+        li t0,0x1
+        sw t0,alloc(a0)
+        addi a0,a0,sizeof_header
+1:      sfree
+        ret
+
+heap_alloc_aligned:
+#[ci [ heap: *header, size: int, align: int ]
+_heap = 0x0
+_size = 0x8
+_align = 0x10
+_s1 = 0x18
+_s2 = 0x20
+_s3 = 0x28
+_flag = 0x30
 size = 0x0
 alloc = 0x4
 next = 0x8
 prev = 0x10
         salloc 0
+        sald 6
+        salb 1
+        sd a0,_heap(sp)
+        addi a1,a1,sizeof_header
+        sd a1,_size(sp)
+        sd a2,_align(sp)
+        sd s1,_s1(sp)
+        sd s2,_s2(sp)
+        sd s3,_s3(sp)
 
-        ld t0,prev(a1)
+        sb zero,_flag(sp)
+
+        add s1,a1,a2
+        addi s1,s1,-1
+        mv s2,a0
+
+1:      mv a0,s2
+        mv a1,s1
+        call heap_find_next_free
+        beqz a0,9f
+        
+        mv s2,a0
+        
+        addi a0,a0,sizeof_header
+        ld a1,_align(sp)
+        call align
+        addi a0,a0,-sizeof_header
+        sub s3,a0,s2
+
+        bnez s3,2f
+
+        mv a0,s2
+        ld a1,_size(sp)
+        call heap_split_header
+        sw zero,alloc(a1)
+        li t0,0x1
+        sw t0,alloc(a0)
+        addi a0,a0,sizeof_header
+        j 1f
+        
+2:      li t0,sizeof_header
+        blt s3,t0,3f
+
+        mv a0,s2
+        mv a1,s3
+        call heap_split_header
+        sw zero,alloc(a0)
+        li t0,0x1
+        sw t0,alloc(a1)
+        mv a0,a1
+        ld a1,_size(sp)
+        call heap_split_header
+        sw zero,alloc(a1)
+        addi a0,a0,sizeof_header
+        j 1f
+        
+3:      ld s2,next(s2)
+        li t0,0x1
+        sb t0,_flag(sp)
+        bnez s2,1b
+        j 8f
+        
+9:      lbu t0,_flag(sp)
+        beqz t0,1f
+        
+8:      ld a0,_heap(sp)
+        ld a1,_size(sp)
+        addi a1,a1,-sizeof_header
+        ld a2,_align(sp)
+        slli a2,a2,0x1
+        call heap_alloc_aligned
+        
+1:      ld s1,_s1(sp)
+        ld s2,_s2(sp)
+        ld s3,_s3(sp)
+        sfree
+        ret
+
+free:
+#[ci [ a0 = ptr ]
+size = 0x0
+alloc = 0x4
+next = 0x8
+prev = 0x10
+        addi a0,a0,-sizeof_header
+        ld t0,prev(a0)
         lwu t1,alloc(t0)
         bnez t1,1f
-        ld t1,next(a1)
+        ld t1,next(a0)
         sd t1,next(t0)
         sd t0,prev(t1)
 
-        lwu t1,size(a1)
+        lwu t1,size(a0)
         lwu t2,size(t0)
         add t1,t1,t2
         sw t1,size(t0)
-        mv a1,t0
+        mv a0,t0
         j 2f
         
-1:      sw zero,alloc(a1)
-2:      ld t0,next(a1)
+1:      sw zero,alloc(a0)
+2:      ld t0,next(a0)
         lwu t1,alloc(t0)
         bnez t1,1f
-        mv a1,t0
-        ld t0,prev(a1)
-        ld t1,next(a1)
+        mv a0,t0
+        ld t0,prev(a0)
+        ld t1,next(a0)
         sd t1,next(t0)
         sd t0,prev(t1)
 
-        lwu t1,size(a1)
+        lwu t1,size(a0)
         lwu t2,size(t0)
         add t1,t1,t2
         sw t1,size(t0)
 
-1:      sfree
-        ret
+1:      ret

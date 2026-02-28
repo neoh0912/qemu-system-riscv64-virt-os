@@ -1,7 +1,7 @@
 pci_devices:
 
 0x00    8       *device
-0x08    8       *driver
+0x08    8       *pci_driver
 0x10    8       *next
 
 pci_handlers:
@@ -21,9 +21,10 @@ pci_drivers:
 0x00    4       pci_id
 0x04    2       class_codes
 0x06    2       reserved
-0x08    8       *driver
-0x10    8       *next
-0x18    8       *free
+0x08    8       device_type: char[8]
+0x10    8       *driver
+0x18    8       *next
+0x20    8       *free
 
 pci_driver interface
 

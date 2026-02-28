@@ -1,0 +1,38 @@
+device_scanner:
+    0x0 scanner: *function
+    0x8 next: *device_scanner
+
+void scanner()
+    init device
+    call device_manager_register_device
+
+device_tree:
+
+0x0 device_type: char[8]
+0x8 start: *device
+0x10 avail_id: int
+0x18 next: *device_tree
+
+
+device:
+0x00 id: int
+0x08 device: *device_object
+0x10 parent: *device
+0x18 read: *function
+0x20 write: *function
+0x28 ioctl: *function
+0x30 next: *device
+0x40 parrent_set: bool
+
+device_types
+
+keyboard
+    read(device: *device_object, operation: char)
+        '\0' = read one event
+            dword read(...)
+        '\1' = read max n events
+            void read(...,buffer: dword[n], n: int)
+    void write()
+            not implemented
+    void ioctl()
+            nor implemented

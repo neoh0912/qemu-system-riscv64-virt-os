@@ -16,15 +16,19 @@ _start:
     call kernel_heap_init
     call uart_init
     call pci_init
-#    call ivshmem_init
-#    call vga_init
-#    call xhcl_init
+    call device_manager_init
 
-    .equ VIO_PCI_INPUT_ID, 0x090010521af4
-    li a0,VIO_PCI_INPUT_ID
-    la a1,virtio_pci_keyboard_init
-    call pci_register_driver
-    call pci_scan    
+    call virtio_pci_keyboard_init
+    call vga_init
+
+    la a0,pci_scan
+    call device_manager_register_device_scanner
+
+    call device_manager_scan
+
+    call device_manager_print_devices
+    call print_newline
+    ebreak
 
 loop:
     wfi
