@@ -25,7 +25,6 @@ HEX: .ascii "0123456789ABCDEF"
 #[yi    [ BSS ]
         .section .bss
         .align 16
-.include "bss/vga.s"
 .include "bss/pci.s"
 .include "bss/uart.s"
 .include "bss/ivshmem.s"
@@ -51,7 +50,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "drivers/uart/printf.s"
 .include "drivers/uart/print_number.s"
 
-.include "drivers/vga/init.s"
+.include "drivers/vga/main.s"
 .include "drivers/vga/api.s"
 
 #.include "drivers/usb/xhcl/init.s"
