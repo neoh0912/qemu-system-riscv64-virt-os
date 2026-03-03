@@ -1,6 +1,5 @@
 .global _start
 _start:
-
     la sp, stack_pointer
 
     la t0,_bss_start
@@ -11,7 +10,6 @@ _start:
     blt t0,t1,1b
 2:
 
-    
     call machine_init
     call kernel_heap_init
     call uart_init
@@ -27,21 +25,32 @@ _start:
     call device_manager_scan
 
     li a0,0x0
-    li a1,1280
-    la a2,1080
-    call display_set_resolution
-
-    li a0,1280*1080*4
+    call display_open
+    break_on_error
+    mv s5,a0
+    
+    call display_get_resolution
+    break_on_error
+    mul a0,a0,a1
+    slli a0,a0,0x2
+    mv s10,a0
     call malloc
     mv s11,a0
     li a1,0xFF
-    li a2,1280*1080*4
+    mv a2,s10
     call memset
     mv a1,s11
-    li a0,0x0
+    mv a0,s5
     call display_write_buffer
+    break_on_error
 
-loop:
-    wfi
-j loop
+    mv a0,s11
+    call free
+
+    li s1,0x0
+    li s2,0x0
+
+#loop:
+    j bounce
+#j loop
 

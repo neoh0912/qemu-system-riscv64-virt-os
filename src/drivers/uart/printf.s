@@ -1,29 +1,26 @@
 printf:
-        salloc 64
-        sd   s3,   0(sp)
-        sd   s4,   8(sp)
-        sd   s5,  16(sp)
+        save sn=3,dn=4
                 
-        mv s3,a0
-        mv s4,zero
-        mv s5,zero
+        mv s1,a0
+        mv s2,zero
+        mv s3,zero
 
-9:      sd zero,40(sp)
+9:      sd zero,_d0(sp)
         li t0,' '
-        sd t0,48(sp)
+        sd t0,_d1(sp)
 
-        add t0,s4,s3 #load char
+        add t0,s2,s1 #load char
         lbu a0,(t0)
 
         beqz a0,9f # jump to end if null
         li t0,'%'
         beq a0,t0,1f
 2:      call uart_putc # print normal char
-        addi s4,s4,0x1
+        addi s2,s2,0x1
         j 9b
         
-1:      addi s4,s4,0x1
-        add t0,s4,s3
+1:      addi s2,s2,0x1
+        add t0,s2,s1
         lbu a0,(t0)
         beqz a0,9f # jump to end if null
         li t0,'%'
@@ -33,10 +30,10 @@ printf:
 
         li t0,'0'
         bne a0,t0,1f
-        sb t0,48(sp)
+        sb t0,_d1(sp)
         
-2:      addi s4,s4,0x1
-        add t0,s4,s3
+2:      addi s2,s2,0x1
+        add t0,s2,s1
         lbu a0,(t0)
         beqz a0,9f # jump to end if null
 
@@ -47,12 +44,12 @@ printf:
         li t0,'9'+1
         bge a0,t0,1f
 
-        ld t0,40(sp)
+        ld t0,_d0(sp)
         li t1,10
         mul t0,t0,t1
         add t0,t0,a0
         addi t0,t0,-0x30
-        sd t0,40(sp)
+        sd t0,_d0(sp)
         j 2b        
 
 #[ci    [ Specifier ]
@@ -65,25 +62,25 @@ printf:
         bne a0,t0,1f
 #[yi    [     Integer     ]
 
-2:      sd a1,24(sp)
-        sd a2,32(sp)    # Save regs    
+2:      sd a1,_d2(sp)
+        sd a2,_d3(sp)    # Save regs    
 
         mv t0,a1
         mv a1,a0
         
-        add t0,t0,s5 # arg addr + offset
+        add t0,t0,s3 # arg addr + offset
         ld a0,(t0)
         
-        ld a2,40(sp)
-        lbu a3,48(sp)
+        ld a2,_d0(sp)
+        lbu a3,_d1(sp)
 
         call print_number
         
-        ld a2,32(sp)    # Restore regs  
-        ld a1,24(sp)    #               
+        ld a2,_d3(sp)    # Restore regs  
+        ld a1,_d2(sp)    #               
         
-        addi s5,s5,0x8
-        addi s4,s4,0x1
+        addi s3,s3,0x8
+        addi s2,s2,0x1
         j 9b
         
 #[yi    [                 ]
@@ -93,11 +90,11 @@ printf:
 
 #[yi    [ Character ]
 
-        add t0,a1,s5 # arg addr + offset
+        add t0,a1,s3 # arg addr + offset
         lb a0,(t0)
         call uart_putc
-        addi s5,s5,0x1
-        addi s4,s4,0x1
+        addi s3,s3,0x1
+        addi s2,s2,0x1
         j 9b
 
 #[yi    [           ]
@@ -107,11 +104,11 @@ printf:
 
 #[yi    [   String   ]
 
-        add t0,a1,s5 # arg addr + offset
+        add t0,a1,s3 # arg addr + offset
         ld a0,(t0)
         call print_string
-        addi s5,s5,0x8
-        addi s4,s4,0x1
+        addi s3,s3,0x8
+        addi s2,s2,0x1
         j 9b
 
 #[yi    [            ]
@@ -120,8 +117,5 @@ printf:
         ecall
         
 
-9:      ld   s5,  16(sp)
-        ld   s4,   8(sp)
-        ld   s3,   0(sp)
-        sfree
+9:      restore
         ret        

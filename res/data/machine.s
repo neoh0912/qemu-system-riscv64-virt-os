@@ -22,7 +22,8 @@ machine_heap_alloc_str: .string "[Chunk"
 machine_heap_free_str: .string "\x1b[7;32m[Free Chunk"
 
 machine_fault_stack_str: .string "\x1b[7mSTACK:\x1b[0m\n\r"
-machine_stack_val_fstr: .string "%04x:\t %10x\n\r"
+machine_stack_val_fstr: .string "%04x:\t %x\n\r"
+machine_stack_val_dword_fstr: .string "%04x:\t %x,\t%18x\n\r"
 
 machine_regs:
 .string "[ra]:  "

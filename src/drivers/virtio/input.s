@@ -20,7 +20,7 @@ DEVICE_FEATURE = 0x4
 DRIVER_FEATURE_SELECT = 0x8
 DRIVER_FEATURE = 0xc
 
-        salloc 0
+        save
 
         sb zero,DEVICE_STATUS(a0)
         fence io,io
@@ -45,17 +45,12 @@ DRIVER_FEATURE = 0xc
 1:      li t1,0xF
         sb t1,DEVICE_STATUS(a0)
 
-        sfree
+        restore
         ret
 
 virtio_input_allocate_virtqueue:
 #[ci [ a0 = *VQUEUE, a1 = *VREGS ]
-        salloc 40
-        sald 1
-        sd s1,(sp)
-        sd a0,0x8(sp)
-        sd a1,0x10(sp)
-        sd s2,0x18(sp)
+        save an=2,sn=2
 
         sh zero,0x16(a1)
         lhu t1,0x18(a1)
@@ -70,7 +65,7 @@ virtio_input_allocate_virtqueue:
         mv a1,zero
         call memset
         mv t0,a0
-        ld a0,0x8(sp)
+        ld a0,_a0(sp)
         sd t0,VQ_DESCRIPTOR_TABLE(a0)
 
         slli a0,s1,0x1
@@ -82,7 +77,7 @@ virtio_input_allocate_virtqueue:
         mv a1,zero
         call memset
         mv t0,a0
-        ld a0,0x8(sp)
+        ld a0,_a0(sp)
         sd t0,VQ_AVAIL_RING(a0)
 
         slli a0,s1,0x3
@@ -94,10 +89,10 @@ virtio_input_allocate_virtqueue:
         mv a1,zero
         call memset
         mv t0,a0
-        ld a0,0x8(sp)
+        ld a0,_a0(sp)
         sd t0,VQ_USED_RING(a0)
 
-        ld a1,0x10(sp)
+        ld a1,_a1(sp)
 
         ld t0,VQ_DESCRIPTOR_TABLE(a0)
         li t1,0xFFFFFFFF
@@ -123,24 +118,20 @@ virtio_input_allocate_virtqueue:
         li t1,0x1
         sh t1,0x1c(a1)
 
-        ld s1,(sp)
-        sfree
+        restore
         ret
 
 virtio_input_allocate_input_structs:
 #[ci [ a0 = *VQUEUE ]
-A0 = 0x0
-BUFFER = 0x8
 
 addr = 0x0
 len = 0x8
 flags = 0xc
 next = 0xe
 
-        salloc 40
-        sald 1
-        sd s1,0x10(sp)
-        sd a0,(sp)
+        save an=1,sn=1,dn=1
+BUFFER = _d0
+
         lhu a0,VQ_SIZE(a0)
         slli a0,a0,0x3
         mv s1,a0
@@ -149,7 +140,7 @@ next = 0xe
         mv a1,zero
         call memset
         sd a0,BUFFER(sp)
-        ld a0,A0(sp)
+        ld a0,_a0(sp)
         lhu a2,VQ_SIZE(a0)
 
         li t0,0x0
@@ -182,28 +173,17 @@ next = 0xe
 
         fence w,w
 
-        ld s1,0x10(sp)
-        sfree
+        restore
         ret
 
 virtio_input_read_used_ring:
 #[ci [ a0 = *VQUEUE, a1 = *handler , a2 = *device]
-A0 = 0x0
+_a0 = 0x0
 A1 = 0x8
 A2 = 0x10
 idx = 0x2
 ring = 0x4
-        salloc (24+8*6)
-        sd a0,A0(sp)
-        sd a1,A1(sp)
-        sd a2,A2(sp)
-        sd s1,0x18(sp)
-        sd s2,0x20(sp)
-        sd s3,0x28(sp)
-        sd s4,0x30(sp)
-        sd s5,0x38(sp)
-        sd s6,0x40(sp)
-
+        save an=3,sn=6
 
 #[g -- Read Used_ring->idx --
 
@@ -229,8 +209,8 @@ ring = 0x4
         add t0,t0,t1
 
         ld a1,(t0)
-        ld a0,A2(sp)
-        ld t0,A1(sp)
+        ld a0,_a2(sp)
+        ld t0,_a1(sp)
         jalr ra,t0,0x0
 
         lhu t0,idx(s4)
@@ -247,11 +227,5 @@ ring = 0x4
 
 1:      sd s2,LAST_SEEN_USED(s5)
 
-        ld s1,0x18(sp)
-        ld s2,0x20(sp)
-        ld s3,0x28(sp)
-        ld s4,0x30(sp)
-        ld s5,0x38(sp)
-        ld s6,0x40(sp)
-        sfree 
+        restore 
         ret

@@ -21,7 +21,7 @@ uart_putc:
     ret
 
 uart_get:
-        salloc 0
+        save
 1:      la t0,uart_queue_head
         ld t1,(t0)
         la t2,uart_queue_tail
@@ -32,5 +32,5 @@ uart_get:
 
         j 1b
 1:      call uart_queue_pop
-        sfree
+        restore
         ret

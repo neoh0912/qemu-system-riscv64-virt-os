@@ -7,4 +7,4 @@ qemu-system-riscv64 \
 -device ivshmem-plain,memdev=mb1 \
 -device bochs-display \
 -device virtio-keyboard-pci,bus=pcie.0,addr=05.0 \
--monitor stdio
+-serial stdio

@@ -2,7 +2,7 @@
 
 plic_enable:
 #[ci [ a0 = id ]
-        salloc 0
+        save
 
         li t0, PLIC_BASE
 
@@ -19,24 +19,24 @@ plic_enable:
         or t2,t2,t3
         sw t2,(t1)
 
-        sfree
+        restore
         ret
 
 plic_set_prio:
 #[ci [ a0 = id, a1 = prio ]
-        salloc 0
+        save
 
         li t0, PLIC_BASE
         slli t1,a0,0x2
         add t0,t0,t1
         sw a1, (t0)
 
-        sfree
+        restore
         ret
 
 plic_set_prio_thres:
 #[ci [ a0 = context, a1 = val ]
-        salloc 0
+        save
 
         li t0, PLIC_BASE
         li t1, 0x200000
@@ -46,23 +46,23 @@ plic_set_prio_thres:
         add t1,t1,t0
         sw a1, 0(t1)
 
-        sfree
+        restore
         ret
 
 plic_get_ipb:
-        salloc 0
+        save
 
         li t0,PLIC_BASE
         li t1,0x1000
         add t0,t0,t1
         lwu a0,(t0)
 
-        sfree
+        restore
         ret
 
 plic_claim_interrupt:
 #[ci [ a0 = context ]
-        salloc 0
+        save
 
         li t0,PLIC_BASE
         li t1,0x200004
@@ -72,12 +72,12 @@ plic_claim_interrupt:
         add t0,t0,t1
         lwu a0,(t0)
         
-        sfree
+        restore
         ret
 
 plic_complete_interrupt:
 #[ci [ a0 = context , a1 = id]
-        salloc 0
+        save
 
         li t0,PLIC_BASE
         li t1,0x200004
@@ -87,6 +87,6 @@ plic_complete_interrupt:
         add t0,t0,t1
         sw a1,(t0)
         
-        sfree
+        restore
         ret
 

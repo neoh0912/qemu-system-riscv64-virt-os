@@ -1,4 +1,7 @@
-.macro salloc n
+save_count = 1
+restore_count = 1
+
+.macro salloc n=0
         sd   ra,  -8(sp)
         sd   fp, -16(sp)
         mv   fp, sp
@@ -87,4 +90,71 @@
     ld x30,232(sp)
     ld x31,240(sp)
     ld x2,8(sp)
+    
+.endm
+
+.macro save an=0 sn=0 dn=0 wn=0 hn=0 bn=0
+        sd   ra,  -8(sp)
+        sd   fp, -16(sp)
+        mv   fp, sp
+        addi sp,sp,-( (((2+(\an)+(\sn)+(\dn))*2+(\wn))*2+(\hn))*2+(\bn) )
+        
+        save_count = save_count+1
+
+_i = 0
+_an = (\an)
+_sn = (\sn)
+_dn = (\dn)
+_wn = (\wn)
+_hn = (\hn)
+_bn = (\bn)
+
+        .rept (\an)
+            sd a\\()+,_i(sp)
+            _a\\()+ = _i
+            _i = _i + 0x8
+        .endr
+        
+        .rept (\sn+1)
+        .if \\()+ >= 1
+            sd s\\()+,_i(sp)
+            _s\\()+ = _i
+            _i = _i + 0x8        
+        .endif
+        .endr
+
+        .rept (\dn)
+            _d\\()+ = _i
+            _i = _i + 0x8
+        .endr
+        .rept (\wn)
+            _w\\()+ = _i
+            _i = _i + 0x4
+        .endr
+        .rept (\hn)
+            _h\\()+ = _i
+            _i = _i + 0x2
+        .endr
+        .rept (\bn)
+            _b\\()+ = _i
+            _i = _i + 0x1
+        .endr
+.endm
+
+
+.macro restore
+    restore_count = restore_count+1
+    .if restore_count != save_count
+        .error "restore"
+    .endif
+
+    .rept (_sn+1)
+        .if \\()+ >= 1
+        ld s\\()+,_s\\()+(sp)
+        .endif
+    .endr
+
+    mv   sp, fp
+    ld   fp, -16(sp)        
+    ld   ra,  -8(sp)    
 .endm

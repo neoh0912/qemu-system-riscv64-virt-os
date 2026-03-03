@@ -1,29 +1,35 @@
 bounce:
-    salloc 0
 
-    beqz s3,1f
-    addi s1,s1,1
-    blt s1,s5,3f
-    li s3,0x0
-3:  j 2f
-1:  addi s1,s1,-1
-    bnez s1,2f
-    li s3,0x1
-2:  beqz s4,1f
-    addi s2,s2,1
-    blt s2,s6,3f
-    li s4,0x0
-3:  j 2f
-1:  addi s2,s2,-1
-    bnez s2,2f
-    li s4,0x1
-2:  li a0,0x0000FF00
-    mv a1,s1
-    mv a2,s2
-    li a3,0x1
-    li a4,0x1
-    call vga_write_rect
-    call vga_flush
 
-    sfree
-    ret
+    call uart_get
+
+1:  li t0,'d'
+    bne a0,t0,1f
+    addi s1,s1,0x1
+    j 2f
+1:  li t0,'a'
+    bne a0,t0,1f
+    beqz s1,2f
+    addi s1,s1,-0x1
+    j 2f
+1:  li t0,'s'
+    bne a0,t0,1f
+    addi s2,s2,0x1
+    j 2f
+1:  li t0,'w'
+    bne a0,t0,1f
+    beqz s2,2f
+    addi s2,s2,-0x1
+    j 2f
+1: 
+2:
+
+    mv a0,s5
+    la a1,image
+    mv a2,s1
+    mv a3,s2
+    lbu a4,image_w
+    lbu a5,image_h
+    call display_write_sprite
+    break_on_error
+j bounce

@@ -23,43 +23,39 @@
 
 virtio_pci_transport_init_device:
 #[ci [ a0 = address off config ]
-        salloc 16
+        save an=1,dn=1
 
-        sd a0,0x0(sp)
-        
         li a0,0x40
         call malloc
-        sd a0,0x8(sp)
+        sd a0,_d0(sp)
 
         li a0,0x22
         call malloc
         li a2,0x22
         mv a1,zero
         call memset
-        ld t0,0x8(sp)
+        ld t0,_d0(sp)
         sd a0,VQUEUE(t0)
 
         
-        ld a0,0x0(sp)
+        ld a0,_a0(sp)
         call virtio_pci_transport_get_regs
         
-        ld t0,0x8(sp)
+        ld t0,_d0(sp)
         sd a0, COMMON_CONFIG(t0)
         sd a1,  NOTIFICATION(t0)
         sd a2,    ISR_STATUS(t0)
         sd a3, DEVICE_CONFIG(t0)
         sd a4, NOTI_OFF_MULT(t0)
 
-        ld a0,0x8(sp)
+        ld a0,_d0(sp)
 
-        sfree
+        restore
         ret
 
 virtio_pci_transport_get_regs:
 #[ci [ a0 = address off config ]
-        salloc 72
-        sd s1,0x38(sp)
-        sd s2,0x40(sp)
+        save sn=2,dn=2
 
         li s1,0x0
 
@@ -78,7 +74,7 @@ virtio_pci_transport_get_regs:
         li t1,0x2
         bne t0,t1,3f
         lwu t1,0x10(s2)
-        sd t1,0x28(sp)
+        sd t1,_d0(sp)
 3:
         lbu a1,0x4(s2)
         
@@ -89,17 +85,18 @@ virtio_pci_transport_get_regs:
 
         or s1,s1,t0
         
-        sd a0,(sp)
+        sd a0,_d1(sp)
         call pci_allocate_bar_to_mmio_region
         mv t0,a0
-        ld a0,(sp)
+        ld a0,_d1(sp)
         j 4f
         
-3:      sd a0,(sp)
+3:      sd a0,_d1(sp)
         call pci_get_bar_address
         mv t0,a0
-        ld a0,(sp)
-        
+        ld a0,_d1(sp)
+
+        addi sp,sp,-0x8*5
 4:      lwu t1,0x8(s2)
         add t0,t0,t1
         lbu t1,0x3(s2)
@@ -118,9 +115,7 @@ virtio_pci_transport_get_regs:
         ld a1,0x10(sp)
         ld a2,0x18(sp)
         ld a3,0x20(sp)
-        ld a4,0x28(sp)
-        
-        ld s1,0x38(sp)
-        ld s2,0x40(sp)
-        sfree
+        addi sp,sp,0x8*5
+        ld a4,_d0(sp)
+        restore
         ret

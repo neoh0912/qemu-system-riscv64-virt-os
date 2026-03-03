@@ -1,52 +1,38 @@
 print_string:
-    salloc 16
-    sd s2, 0(sp)
-    sd s3, 8(sp)
+    save sn=2
+    mv s1, a0
+    mv s2, zero
 
-    mv s2, a0
-    mv s3, zero
-
-1:  add t0,s2,s3
+1:  add t0,s1,s2
     lbu a0, (t0)
     beqz a0, 1f
     call uart_putc
-    addi s3,s3,1
+    addi s2,s2,1
     j 1b
 1:
-    ld s3, 8(sp)        
-    ld s2, 0(sp)
-    sfree
+    restore
     ret
 
 print_newline:
-    salloc 0
+    save
     
     li a0,0xa
     call uart_putc
     li a0,0xd
     call uart_putc
 
-    sfree    
+    restore    
     ret
 
 print_int_hex:
-    salloc 0
-
     li a1,'x'
     li a2,0
     li a3,' '
-    call print_number
-
-    sfree
-    ret
+    tail print_number
 
 print_int_dec:
-    salloc 0
-
     li a1,'u'
     li a2,0
     li a3,' '
-    call print_number
+    tail print_number
 
-    sfree
-    ret

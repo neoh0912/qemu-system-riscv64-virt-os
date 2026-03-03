@@ -9,9 +9,12 @@
 .equ LINE_STATUS_DATA_READY,    0x1
 .equ HEAP_SIZE, 0x10000000
 
+.include "const/errors.s"
+
 #[gi    [macros]
 .include "macros.s"
 .include "debug.s"
+.include "error.s"
 
 #[yi    [data]
         .section .data
@@ -22,6 +25,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "data/ivshmem.s"
 .include "data/machine.s"
 .include "data/device_manager.s"
+.include "data/image.s"
 #[yi    [ BSS ]
         .section .bss
         .align 16
@@ -51,7 +55,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "drivers/uart/print_number.s"
 
 .include "drivers/vga/main.s"
-.include "drivers/vga/api.s"
+.include "drivers/vga/sprite.s"
 
 #.include "drivers/usb/xhcl/init.s"
 #.include "drivers/usb/xhcl/api.s"
@@ -61,6 +65,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "drivers/virtio/input.s"
 
         .section .text.kernel
+.include "kernel/device_manager/open.s"
 .include "kernel/device_manager/main.s"
 .include "kernel/device_manager/debug.s"
 .include "kernel/device_manager/display.s"
@@ -75,4 +80,5 @@ HEX: .ascii "0123456789ABCDEF"
         .section .text.bios
 .include "bios.s"
         .section .text.programs
+.include "programs/bounce.s"
     .section .text.end

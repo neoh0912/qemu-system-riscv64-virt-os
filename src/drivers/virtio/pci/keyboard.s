@@ -26,37 +26,34 @@
 
 virtio_pci_keyboard_init:
 VIO_PCI_INPUT_ID = 0x090010521af4
-        salloc 0
+        save
         li a0,VIO_PCI_INPUT_ID
         la a1,virtio_pci_keyboard_init_device
         mv a2,zero
 keyboard = 0x6472616F6279656B        
         li a3,keyboard
         call pci_register_driver
-        sfree
+        restore
         ret
 
 virtio_pci_keyboard_init_device:
 #[ci [ a0 = address of config space , a1 = bus #, a2 = device #]
-        salloc 40
+        save an=3,dn=2
 
-A0 = 0x0
-A1 = 0x8
-A2 = 0x10
-PLIC_ID = 0x18
-DEVICE = 0x20
+PLIC_ID = _d0
+DEVICE = _d1
 
-        sd a0,A0(sp)
-        sd a1,A1(sp)
-        sd a2,A2(sp)
+        sd a0,_a0(sp)
+        sd a1,_a1(sp)
+        sd a2,_a2(sp)
 
         li a1,0x20
         call pci_set_interrupt_line
-        ld a0,A0(sp)
-        ld a1,A2(sp)
+        ld a0,_a0(sp)
+        ld a1,_a2(sp)
         call pci_get_plic_id
         sd a0,PLIC_ID(sp)
-        ld a0,A0(sp)
+        ld a0,_a0(sp)
         call virtio_pci_transport_init_device
         sd a0,DEVICE(sp)
 
@@ -105,17 +102,12 @@ DEVICE = 0x20
         la a2,virtio_pci_keyboard_write
         la a3,virtio_pci_keyboard_ioctl
 
-        sfree
+        restore
         ret
 
 virtio_pci_keyboard_callback:
 #[ci [ a0 = *device, a1 = irq ]
-        A1 = 0x0
-
-        salloc 16
-
-        sd a1,A1(sp)
-        sd s1,0x8(sp)
+        save an=2,sn=1
         mv s1,a0
 
         ld t0,ISR_STATUS(s1)
@@ -133,22 +125,89 @@ virtio_pci_keyboard_callback:
         fence w,w
         
         li a0,0x0
-        ld a1,A1(sp)
+        ld a1,_a1(sp)
         call plic_complete_interrupt
         li a0,0x0
         j 8f
 
 9:      li a0,0x1
-8:      ld s1,0x8(sp)
-        sfree
+8:      restore
         ret
 
 virtio_pci_keyboard_read:
+#[ci [ device, op, ... ]
+        save
+        li t0,0x0
+        bne a0,t0,1f
+        call virtio_pci_keyboard_pull_event
+        j 2f
+1:      li t0,0x1
+        bne a0,t0,1f
+        mv a1,a2
+        mv a2,a3
+        call virtio_pci_keyboard_pull_events
+        j 2f
+1:
+2:        
+        restore
         ret
 virtio_pci_keyboard_write:
         ret
 virtio_pci_keyboard_ioctl:
         ret
+
+virtio_pci_keyboard_pull_event:
+#[ci [ device ]
+        tail virtio_pci_keyboard_pop_ring
+        
+virtio_pci_keyboard_pull_events:
+#[ci [ device, buffer, n ]
+        save an=1,sn=2
+_device = _a0
+        mv s1,a2
+        mv s2,a1
+
+1:      ld a0,_device(sp)
+        call virtio_pci_keyboard_pop_ring
+        li t0,-EAGAIN
+        beq a0,t0,2f
+
+        sd a0,(s2)
+        
+        addi s2,s2,0x8
+        addi s1,s1,-1
+        bgtz s1,1b
+
+2:      restore
+        ret
+
+virtio_pci_keyboard_pop_ring:
+#[ci [ a0 = *device ]
+read = 0x0
+write = 0x4
+ring = 0x8
+A0 = 0x0
+        ld t0,RING_BUFFER_SIZE(a0)
+        ld a0,RING_BUFFER(a0)
+        lwu t1,read(a0)
+        remu t1,t1,t0
+        lwu t2,write(a0)
+        remu t2,t2,t0
+        beq t1,t2,1f
+
+        slli t3,t2,0x3
+        add t3,t3,a0
+        ld a1,ring(t3)
+        add t2,t2,0x1
+        remu t2,t2,t0
+        sd t0,read(a0)
+        mv a0,a1
+        ret
+
+1:      li a0,-EAGAIN
+        ret
+        
+
 
 virtio_pci_keyboard_append_ring:
 #[ci [ a0 = *device, a1 = val]

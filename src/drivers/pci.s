@@ -2,7 +2,7 @@
 .equ    PCI_ECAM,    0x30000000
 .equ    PCI_MMIO_32, 0x40000000
 .equ    PCI_MMIO_64, 0x4000000000
-sizeof_driver = 0x28
+.include "const/pci/driver.s"
 
 #[c     [LOCALS]
 
@@ -33,9 +33,7 @@ pci_get_plic_id:
 
 pci_allocate_bar_to_mmio_region:
 #[ci [ a0 = address, a1 = bar ]
-        salloc 16
-        sd a0,(sp)
-        sd a1,0x8(sp)
+        save an=1
 
         addi t0,a0,0x10
         slli t1,a1,0x2
@@ -73,19 +71,19 @@ pci_allocate_bar_to_mmio_region:
         sd t3,(t2)
         fence io,io
 
-        ld t1,(sp)
+        ld t1,_a0(sp)
         addi t0,t1,0x4
         lwu t1,(t0)
         ori t1,t1,0x2
         sw t1,(t0)
         fence io,io
        
-        sfree
+        restore
         ret
 
 pci_init:
 #[g -- allocate pci_handlers --
-        salloc 0
+        save
         li a0,0x20
         call malloc
         la t0,pci_handlers
@@ -98,13 +96,12 @@ pci_init:
         li t1,PCI_MMIO_32
         sd t1,(t0)
 
-        sfree
+        restore
         ret
 
 pci_get_bar_address:
 #[ci [ a0 = address, a1 = bar ]
-        salloc 0
-
+        save
         addi t0,a0,0x10
         slli t1,a1,0x2
         add t0,t0,t1
@@ -113,7 +110,7 @@ pci_get_bar_address:
         li t0,0xF
         andn a0,a0,t0
 
-        sfree
+        restore
         ret
 
 pci_register_driver:
@@ -121,19 +118,7 @@ pci_register_driver:
 #[c  device_id = (CLASS_CODE)[40-47](SUB_CLASS)[32-39]
 #[c               (DEVICE_ID)[16-31](VENDOR_ID)[0-15]
 
-pci_id = 0x0
-class_code = 0x4
-device_id = 0x8
-driver = 0x10
-next = 0x18
-free = 0x20
- 
-        salloc 32
-        sald 1
-        sd a0,(sp)
-        sd a1,0x8(sp)
-        sd a2,0x10(sp)
-        sd a3,0x18(sp)
+        save an=4,dn=1
 
 #[g -- Allocate pci_driver structure --
         
@@ -143,22 +128,22 @@ free = 0x20
         mv a1,zero
         call memset
 
-        ld t0,0x8(sp)
-        sd t0,driver(a0)
-        ld t0,0x10(sp)
-        sd t0,  free(a0)
-        ld t0,0x18(sp)
-        sd t0,device_id(a0)
+        ld t0,_a1(sp)
+        sd t0,driver__driver(a0)
+        ld t0,_a2(sp)
+        sd t0,driver__free(a0)
+        ld t0,_a3(sp)
+        sd t0,driver__device_id(a0)
 
 #[g -- Seperate device_id into pci_id and class codes --
 
         li t0,0xFFFFFFFF
-        ld t1,(sp)
+        ld t1,_a0(sp)
         and t0,t1,t0
         
-        sw t0,pci_id(a0)
+        sw t0,driver__pci_id(a0)
         srli t0,t1,0x20
-        sh t0,class_code(a0)
+        sh t0,driver__class_code(a0)
 
 #[g -- Add pci_driver to linked list --
 
@@ -166,24 +151,14 @@ free = 0x20
         ld t1,(t0)
         bnez t1,1f
         mv t1,a0
-1:      sd t1,next(a0)
+1:      sd t1,driver__next(a0)
         sd a0,(t0)
 
-        sfree
+        restore
         ret
 
 pci_scan:
-
-pci_id = 0x0
-class_code = 0x4
-device_id = 0x8
-driver = 0x10
-next = 0x18
-free = 0x20
-        salloc 32
-        sd s1,0x0(sp)
-        sd s2,0x8(sp)
-        sd s3,0x10(sp)
+        save sn=3
 
         li s1,0x0
 1:      li s2,0x0
@@ -200,22 +175,22 @@ free = 0x20
         srli t1,t1,0x10
         ld s3,pci_drivers
         
-4:      lwu t2,pci_id(s3)
+4:      lwu t2,driver__pci_id(s3)
         bne t2,t0,3f
-        lwu t2,class_code(s3)
+        lwu t2,driver__class_code(s3)
         bne t2,t1,3f
 
-        ld t2,driver(s3)
+        ld t2,driver__driver(s3)
         mv a1,s1
         mv a2,s2
         jalr ra,t2,0x0
-        ld a4,device_id(s3)
+        ld a4,driver__device_id(s3)
         call device_manager_register_device
         
         j 4f   
 
 3:      mv t2,s3
-        ld s3,next(t2)
+        ld s3,driver__next(t2)
         bne s3,t2,4b
         
 
@@ -227,24 +202,17 @@ free = 0x20
         li t0,255
         blt s1,t0,1b
         
-1:      ld s1, 0x0(sp)
-        ld s2, 0x8(sp)
-        ld s3, 0x10(sp)
-        sfree
+1:      restore
         ret
 
 pci_register_callback:
 #[ci [ a0 = *device: device_specific_struct, a1 = *callback: call, a2 = iqr ]
-        salloc 24
+        save an=3
 #[g -- allocate pci_handler --
 
 device = 0x0
 callback = 0x8
 next = 0x10
-
-        sd a0,(sp)
-        sd a1,0x8(sp)
-        sd a2,0x10(sp)
 
         li a0,0x18
         call malloc
@@ -252,11 +220,11 @@ next = 0x10
         mv a1,zero
         call memset
         
-        ld t0,(sp)
+        ld t0,_a0(sp)
         sd t0,device(a0)
-        ld t0,0x8(sp)
+        ld t0,_a1(sp)
         sd t0,callback(a0)
-        ld t0,0x10(sp)
+        ld t0,_a2(sp)
         addi t0,t0,-0x20
         slli t0,t0,0x3
         la t1,pci_handlers
@@ -270,14 +238,12 @@ next = 0x10
 1:      sd t1,next(a0)
         sd a0,(t0)
         
-        sfree
+        restore
         ret
 
 pci_dispatch_interrupt:
 #[ci [ a0 = IRQ ID ]
-        salloc 16
-        sd s1,(sp)
-        sd a0,0x8(sp)
+        save an=1,sn=1
 
         la t0,pci_handlers
         addi t1,a0,-0x20
@@ -286,8 +252,8 @@ pci_dispatch_interrupt:
         add t0,t0,t1
         ld s1,(t0)
 
-1:      ld t0,0x8(s1)
-        ld a1,0x8(sp)
+1:      ld t0,_a0(s1)
+        ld a1,_a0(sp)
         ld a0,(s1)
 
         jalr ra,t0,0x0
@@ -296,8 +262,7 @@ pci_dispatch_interrupt:
         ld s1,0x10(t0)
         bne s1,t0,1b
 
-1:      ld s1,(sp)
-        sfree
+1:      restore
         ret
 
 pci_config:

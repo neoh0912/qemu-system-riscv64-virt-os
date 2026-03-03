@@ -235,11 +235,9 @@ machine_print_heap:
 3:  la t6,machine_heap_free_str
 4:  sd t6,(sp)
     addi t6,s1,0x18
-    li t2,0x2
-    bne t1,t2,5f
-    addi t6,t6,0x8  
-5:  sd t6,8(sp)
+    sd t6,8(sp)
     lwu t0,0x0(s1)
+    addi t0,t0,-0x18
     sd t0,16(sp)
     
     call printf
@@ -271,17 +269,26 @@ machine_print_stack:
     ld s2,0x38(a0)
     li s3,0x0
 
-1:  ld t0,(s1)
-    addi sp,sp,-0x10
+    addi sp,sp,-0x18
+
+1:  addi t0,s1,0x8
+    bgeu t0,s2,2f
+
+    ld t0,(s1)
+    sd t0,0x10(sp)
+    la a0,machine_stack_val_dword_fstr
+    j 3f  
+
+2:  la a0,machine_stack_val_fstr
+    
+3:  lbu t0,(s1)
     sd s3,(sp)
     sd t0,0x8(sp)
-    la a0,machine_stack_val_fstr
     mv a1,sp
     call printf
-    addi sp,sp,0x10
 
-    addi s1,s1,0x8
-    addi s3,s3,0x8
+    addi s1,s1,0x1
+    addi s3,s3,0x1
     blt s1,s2,1b
 
     sfree

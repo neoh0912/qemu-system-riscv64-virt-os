@@ -65,6 +65,25 @@ prev = 0x10
         mv a1,t1
         ret
 
+heap_merge_headers:
+#[ci [ a,b ]
+size = 0x0
+alloc = 0x4
+next = 0x8
+prev = 0x10
+        lwu t0,size(a0)
+        lwu t1,size(a1)
+        add t0,t0,t1
+        sw t0,size(a0)
+
+        ld t0,next(a1)
+        sd t0,next(a0)
+        beqz t0,1f
+        sd a0,prev(t0)
+1:      ret
+        
+
+
 
 heap_alloc:
 #[ci [ heap: *header, size: int ]
@@ -186,34 +205,23 @@ size = 0x0
 alloc = 0x4
 next = 0x8
 prev = 0x10
+        salloc 0
         addi a0,a0,-sizeof_header
+
+        sw zero,(a0)
         ld t0,prev(a0)
+        beqz t0,1f
         lwu t1,alloc(t0)
         bnez t1,1f
-        ld t1,next(a0)
-        sd t1,next(t0)
-        sd t0,prev(t1)
-
-        lwu t1,size(a0)
-        lwu t2,size(t0)
-        add t1,t1,t2
-        sw t1,size(t0)
+        mv a1,a0
         mv a0,t0
-        j 2f
-        
-1:      sw zero,alloc(a0)
-2:      ld t0,next(a0)
+        call heap_merge_headers
+1:      ld t0,next(a0)
+        beqz t0,1f
         lwu t1,alloc(t0)
         bnez t1,1f
-        mv a0,t0
-        ld t0,prev(a0)
-        ld t1,next(a0)
-        sd t1,next(t0)
-        sd t0,prev(t1)
+        mv a1,t0
+        call heap_merge_headers
 
-        lwu t1,size(a0)
-        lwu t2,size(t0)
-        add t1,t1,t2
-        sw t1,size(t0)
-
-1:      ret
+1:      sfree
+        ret

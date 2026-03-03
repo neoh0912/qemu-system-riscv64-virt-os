@@ -13,7 +13,7 @@
 .equ UART_QUEUE_SIZE, 32
 
 uart_init:
-        salloc 0
+        save
         #[ci [ Init Queue ]
         li a0,UART_QUEUE_SIZE
         call malloc
@@ -44,7 +44,7 @@ uart_init:
         mv a0,zero
         mv a1,zero
         call plic_set_prio_thres
-        sfree
+        restore
         ret
 
 uart_queue_push:
