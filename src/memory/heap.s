@@ -6,14 +6,10 @@ size = 0x0
 alloc = 0x4
 next = 0x8
 prev = 0x10
-        salloc 0
-
         sw a1,size(a0)
         sw zero,alloc(a0)
         sd zero,next(a0)
         sd a0,prev(a0)
-
-        sfree
         ret
 
 heap_find_next_free:
@@ -22,8 +18,6 @@ size = 0x0
 alloc = 0x4
 next = 0x8
 prev = 0x10
-        salloc 0
-
         mv t0,a0
 
 1:      lwu t1,alloc(t0)
@@ -38,8 +32,7 @@ prev = 0x10
         bnez t0,1b
         li a0,0x0
         
-3:      sfree
-        ret
+3:      ret
 
 heap_split_header:
 #[ci [ header: *header, size: int ]
@@ -87,12 +80,10 @@ prev = 0x10
 
 heap_alloc:
 #[ci [ heap: *header, size: int ]
-_heap = 0x0
-_size = 0x8
 alloc = 0x4
-        salloc 0
-        sald 2
-        sd a0,_heap(sp)
+        save an=2
+_heap = _a0
+_size = _a1
         addi a1,a1,sizeof_header
         sd a1,_size(sp)
 
@@ -104,34 +95,24 @@ alloc = 0x4
         li t0,0x1
         sw t0,alloc(a0)
         addi a0,a0,sizeof_header
-1:      sfree
+1:      restore
         ret
 
 heap_alloc_aligned:
 #[ci [ heap: *header, size: int, align: int ]
-_heap = 0x0
-_size = 0x8
-_align = 0x10
-_s1 = 0x18
-_s2 = 0x20
-_s3 = 0x28
-_flag = 0x30
+
 size = 0x0
 alloc = 0x4
 next = 0x8
 prev = 0x10
-        salloc 0
-        sald 6
-        salb 1
-        sd a0,_heap(sp)
+        save an=3,sn=3,bn=1
+_heap = _a0
+_size = _a1
+_align = _a2
         addi a1,a1,sizeof_header
         sd a1,_size(sp)
-        sd a2,_align(sp)
-        sd s1,_s1(sp)
-        sd s2,_s2(sp)
-        sd s3,_s3(sp)
 
-        sb zero,_flag(sp)
+        sb zero,_b0(sp)
 
         add s1,a1,a2
         addi s1,s1,-1
@@ -179,11 +160,11 @@ prev = 0x10
         
 3:      ld s2,next(s2)
         li t0,0x1
-        sb t0,_flag(sp)
+        sb t0,_b0(sp)
         bnez s2,1b
         j 8f
         
-9:      lbu t0,_flag(sp)
+9:      lbu t0,_b0(sp)
         beqz t0,1f
         
 8:      ld a0,_heap(sp)
@@ -193,10 +174,7 @@ prev = 0x10
         slli a2,a2,0x1
         call heap_alloc_aligned
         
-1:      ld s1,_s1(sp)
-        ld s2,_s2(sp)
-        ld s3,_s3(sp)
-        sfree
+1:      restore
         ret
 
 free:
@@ -205,7 +183,7 @@ size = 0x0
 alloc = 0x4
 next = 0x8
 prev = 0x10
-        salloc 0
+        save
         addi a0,a0,-sizeof_header
 
         sw zero,(a0)
@@ -223,5 +201,5 @@ prev = 0x10
         mv a1,t0
         call heap_merge_headers
 
-1:      sfree
+1:      restore
         ret

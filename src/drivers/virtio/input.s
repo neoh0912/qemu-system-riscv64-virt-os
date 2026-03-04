@@ -177,10 +177,7 @@ BUFFER = _d0
         ret
 
 virtio_input_read_used_ring:
-#[ci [ a0 = *VQUEUE, a1 = *handler , a2 = *device]
-_a0 = 0x0
-A1 = 0x8
-A2 = 0x10
+#[ci [ a0 = *VQUEUE, a1 = *handler , a2 = *device ]
 idx = 0x2
 ring = 0x4
         save an=3,sn=6

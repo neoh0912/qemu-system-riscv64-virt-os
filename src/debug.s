@@ -1,10 +1,10 @@
 .macro db char
-    addi sp,sp,-16
+    addi sp,sp,-0x8*2
     sd a0,(sp)
     sd t0,8(sp)
     li a0,\char
     call uart_putc
     ld t0,8(sp)
     ld a0,(sp)
-    addi sp,sp, 16
+    addi sp,sp, 0x8*2
 .endm

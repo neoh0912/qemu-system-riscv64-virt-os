@@ -147,9 +147,6 @@ Exception_handler:
     addi t0,t0,0x4
     csrw mepc,t0
 
-    csrr t0,mcause
-    li t1,0x3
-    bne t0,t1,2f
 
 1:  call uart_getc
     beqz a0,1b

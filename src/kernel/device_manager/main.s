@@ -6,12 +6,10 @@ sizeof_device_descriptor_table = 0x10
 
 create_device_tree:
 #[ci [ device_type]
-        salloc 0
-        sald 1
-        sd a0,(sp)
+        save an=1
         li a0,sizeof_device_tree
         call malloc
-        ld t0,(sp)
+        ld t0,_a0(sp)
         sd t0,device_tree__device_type(a0)
         sd zero,device_tree__start(a0)
         la t0,device_manager_device_tree_root
@@ -19,11 +17,11 @@ create_device_tree:
         sd t1,device_tree__next(a0)
         sd zero,device_tree__avail_id(a0)
         sd a0,(t0)
-        sfree
+        restore
         ret
 
 device_manager_init:
-        salloc 0
+        save
 keyboard = 0x6472616F6279656B
         li a0,keyboard
         call create_device_tree
@@ -40,29 +38,25 @@ display = 0x0079616C70736964
         la t0,device_manager_device_descriptors
         sd a0,(t0)
 
-        sfree
+        restore
         ret
 
 device_manager_register_device_scanner:
 #[ci [ scanner: *device_scanner ]
-        salloc 8
-        sd a0,(sp)
+        save an=1
         li a0,sizeof_device_scanner
         call malloc
         la t0,device_manager_device_scanners
         ld t1,(t0)
         sd t1,device_scanner__next(a0)
         sd a0,(t0)
-        ld t0,(sp)
+        ld t0,_a0(sp)
         sd t0,device_scanner__scanner(a0)
-        sfree
+        restore
         ret
 
 device_manager_scan:
-_s1 = 0x0
-        salloc 0
-        sald 1
-        sd s1,_s1(sp)
+        save sn=1
 
         ld s1,device_manager_device_scanners
 1:      ld t0,device_scanner__scanner(s1)
@@ -71,8 +65,7 @@ _s1 = 0x0
         ld s1,device_scanner__next(t0)
         bnez s1,1b
 
-        ld s1,_s1(sp)
-        sfree
+        restore
         ret
 
 device_manager_get_device_tree:
@@ -116,27 +109,22 @@ next = 0x30
 
 device_manager_register_device:
 #[ci [ device: *void, read, write, ioctl: *function, device_type: char[8] ]
-_id = 0x0
-_device = 0x8
-_read = 0x10
-_write = 0x18
-_ioctl = 0x20
-_ptr = 0x28
-_device_type = 0x30
-start = 0x8
-avail_id = 0x10
-        salloc 0
-        sald 7
-        sd a0,_device(sp)
-        sd a1,_read(sp)
-        sd a2,_write(sp)
-        sd a3,_ioctl(sp)
-        sd a4,_device_type(sp)
+
+        save an=5,dn=2
+_device = _a0
+_read = _a1
+_write = _a2
+_ioctl = _a3
+_device_type = _a4
+_id = _d0
+_ptr = _d1
         mv a0,a4
-        
+
         call device_manager_get_device_tree
-        ld t0,0x10(a0)
+        ld t0,device_tree__avail_id(a0)
         sd t0,_id(sp)
+        addi t0,t0,0x1
+        sd t0,device_tree__avail_id(a0)
         sd a0,_ptr(sp)
 
         li a0,sizeof_device
@@ -162,14 +150,12 @@ avail_id = 0x10
         
         ld t0,_ptr(sp)
         
-        ld t1,start(t0)
+        ld t1,device_tree__start(t0)
         sd t1,device__next(a0)
-        sd a0,start(t0)
+        sd a0,device_tree__start(t0)
         
         ld t1,_id(sp)
         sd t1,device__id(a0)
-        addi t1,t1,0x1
-        sd t1,avail_id(t0)
 
-        sfree
+        restore
         ret

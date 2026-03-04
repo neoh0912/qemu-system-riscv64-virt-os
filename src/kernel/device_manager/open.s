@@ -2,16 +2,14 @@ sizeof_device_descriptor_table = 0x10
 
 device_manager_open_device: #[ci [ device_descriptor ]
 #[ci [ device_type, id ]
-        salloc 0
-        sald 1
+        save
         call device_manager_get_device
         bnez a0,1f
 
         li a0,-ENODEV
         j 9f
         
-1:      sd a0,(sp)
-        ld t0,device_manager_device_descriptors
+1:      ld t0,device_manager_device_descriptors
         li t2,( sizeof_device_descriptor_table * 0x8 )
         add t2,t2,t0
         mv t4,t0
@@ -19,8 +17,7 @@ device_manager_open_device: #[ci [ device_descriptor ]
 1:      ld t1,(t0)
         bnez t1,2f
 
-        ld t3,(sp)
-        sd t3,(t0)
+        sd a0,(t0)
         sub t0,t0,t4
         srli a0,t0,0x3
         j 9f
@@ -29,12 +26,12 @@ device_manager_open_device: #[ci [ device_descriptor ]
         blt t0,t2,1b
         li a0,-EMFILE
 
-9:      sfree
+9:      restore
         ret
 
 device_manager_close_device:
 #[ci [ device_descriptor ]
-        salloc 0
+        save
         li t0,sizeof_device_descriptor_table
         blt a0,t0,1f
         li a0,-ERANGE
@@ -52,7 +49,7 @@ device_manager_close_device:
 1:      sd zero,(t0)
         mv a0,zero
 
-9:      sfree
+9:      restore
         ret
 
 .global device_manager_get_device_of_dd

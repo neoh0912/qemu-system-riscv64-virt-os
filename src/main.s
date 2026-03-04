@@ -8,7 +8,9 @@
 .equ INTERRUPT_ENABLE_REGISTER, 0x1
 .equ LINE_STATUS_DATA_READY,    0x1
 .equ HEAP_SIZE, 0x10000000
-
+mtime = 0x0200BFF8
+mtime_frec = 10*1000*1000
+mtime_64hz = mtime_frec >> 6
 .include "const/errors.s"
 
 #[gi    [macros]
@@ -66,6 +68,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "kernel/device_manager/main.s"
 .include "kernel/device_manager/debug.s"
 .include "kernel/device_manager/display.s"
+.include "kernel/device_manager/keyboard.s"
         .section .text.memory
 .include "memory/memcpy.s"
 .include "memory/heap.s"

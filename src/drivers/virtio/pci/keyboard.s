@@ -22,7 +22,7 @@
 .equ LAST_SEEN_USED,0x18
 .equ VQ_SIZE,0x20
 
-.equ KEY_RING_BUFFER_SIZE,0x20
+.equ KEY_RING_BUFFER_SIZE,0x100
 
 virtio_pci_keyboard_init:
 VIO_PCI_INPUT_ID = 0x090010521af4
@@ -91,7 +91,7 @@ DEVICE = _d1
         ld t0,DEVICE(sp)
         sd a0,RING_BUFFER(t0)
         li t1,KEY_RING_BUFFER_SIZE
-        sd t1,(t0)
+        sd t1,RING_BUFFER_SIZE(t0)
 
         ld t1,NOTIFICATION(t0)
         sh zero,(t1)
@@ -131,18 +131,19 @@ virtio_pci_keyboard_callback:
         j 8f
 
 9:      li a0,0x1
-8:      restore
+8:      
+        restore
         ret
 
 virtio_pci_keyboard_read:
 #[ci [ device, op, ... ]
         save
         li t0,0x0
-        bne a0,t0,1f
+        bne a1,t0,1f
         call virtio_pci_keyboard_pull_event
         j 2f
 1:      li t0,0x1
-        bne a0,t0,1f
+        bne a1,t0,1f
         mv a1,a2
         mv a2,a3
         call virtio_pci_keyboard_pull_events
@@ -195,12 +196,12 @@ A0 = 0x0
         remu t2,t2,t0
         beq t1,t2,1f
 
-        slli t3,t2,0x3
+        slli t3,t1,0x3
         add t3,t3,a0
         ld a1,ring(t3)
-        add t2,t2,0x1
-        remu t2,t2,t0
-        sd t0,read(a0)
+        add t1,t1,0x1
+        remu t1,t1,t0
+        sw t1,read(a0)
         mv a0,a1
         ret
 
@@ -230,6 +231,7 @@ A0 = 0x0
         ld t4,(a1)
         sd t4,ring(t3)
         addi t2,t2,0x1
+        remu t2,t2,t0
         sw t2,write(a0)
         
 1:      ret

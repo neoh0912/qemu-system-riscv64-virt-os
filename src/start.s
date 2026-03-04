@@ -24,33 +24,11 @@ _start:
 
     call device_manager_scan
 
+    call device_manager_print_devices
+
     li a0,0x0
-    call display_open
+    call keyboard_open
     break_on_error
-    mv s5,a0
-    
-    call display_get_resolution
-    break_on_error
-    mul a0,a0,a1
-    slli a0,a0,0x2
-    mv s10,a0
-    call malloc
     mv s11,a0
-    li a1,0xFF
-    mv a2,s10
-    call memset
-    mv a1,s11
-    mv a0,s5
-    call display_write_buffer
-    break_on_error
-
-    mv a0,s11
-    call free
-
-    li s1,0x0
-    li s2,0x0
-
-#loop:
+    
     j bounce
-#j loop
-

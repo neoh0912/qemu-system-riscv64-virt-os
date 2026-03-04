@@ -243,6 +243,9 @@ next = 0x10
 
 pci_dispatch_interrupt:
 #[ci [ a0 = IRQ ID ]
+device = 0x0
+callback = 0x8
+next = 0x10
         save an=1,sn=1
 
         la t0,pci_handlers
@@ -252,9 +255,9 @@ pci_dispatch_interrupt:
         add t0,t0,t1
         ld s1,(t0)
 
-1:      ld t0,_a0(s1)
+1:      ld t0,callback(s1)
         ld a1,_a0(sp)
-        ld a0,(s1)
+        ld a0,device(s1)
 
         jalr ra,t0,0x0
         beqz a0,1f
