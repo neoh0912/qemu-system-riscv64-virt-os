@@ -55,7 +55,7 @@ virtio_pci_transport_init_device:
 
 virtio_pci_transport_get_regs:
 #[ci [ a0 = address off config ]
-        save sn=2,dn=2
+        save sn=2,dn=6
 
         li s1,0x0
 
@@ -74,7 +74,7 @@ virtio_pci_transport_get_regs:
         li t1,0x2
         bne t0,t1,3f
         lwu t1,0x10(s2)
-        sd t1,_d0(sp)
+        sd t1,_d5(sp)
 3:
         lbu a1,0x4(s2)
         
@@ -85,18 +85,17 @@ virtio_pci_transport_get_regs:
 
         or s1,s1,t0
         
-        sd a0,_d1(sp)
+        sd a0,_d0(sp)
         call pci_allocate_bar_to_mmio_region
         mv t0,a0
-        ld a0,_d1(sp)
+        ld a0,_d0(sp)
         j 4f
         
-3:      sd a0,_d1(sp)
+3:      sd a0,_d0(sp)
         call pci_get_bar_address
         mv t0,a0
-        ld a0,_d1(sp)
+        ld a0,_d0(sp)
 
-        addi sp,sp,-0x8*5
 4:      lwu t1,0x8(s2)
         add t0,t0,t1
         lbu t1,0x3(s2)
@@ -115,7 +114,6 @@ virtio_pci_transport_get_regs:
         ld a1,0x10(sp)
         ld a2,0x18(sp)
         ld a3,0x20(sp)
-        addi sp,sp,0x8*5
-        ld a4,_d0(sp)
+        ld a4,_d5(sp)
         restore
         ret
