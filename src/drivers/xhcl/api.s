@@ -2,8 +2,7 @@
 .equ HCSPARAMS1,0x4
 
 xhcl_discover_device:
-        salloc 8
-        sd s1,(sp)
+        save sn=1
 
         ld s1,xhcl_regs
         lwu t0,HCSPARAMS1(s1)
@@ -19,6 +18,5 @@ xhcl_discover_device:
         addi t1,t1,0x1
         blt t1,t0,1b
 
-2:      ld s1,(sp)
-        sfree 8
+2:      restore
         ret

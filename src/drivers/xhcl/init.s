@@ -34,7 +34,7 @@
 
 
 xhcl_init:
-        salloc 0
+        save
 
         call xhcl_init_plic
 
@@ -56,26 +56,25 @@ xhcl_init:
         lwu t1,USBSTS(t0)
         andi t1,t1,0x1
 
-        sfree 0
+        restore
         ret
 
 xhcl_init_interrupts:
         ret
 
 xhcl_init_plic:
-        salloc 0
+        save
 
         li a0,XHCL_PLIC_ID
         call plic_enable
         li a1,0x1
         call plic_set_prio
 
-        sfree 0
+        restore
         ret
 
 xhcl_init_event_ring:
-        salloc 8
-        sd s1,(sp)
+        save sn=1
 
         ld s1,xhcl_regs
 
@@ -122,13 +121,11 @@ xhcl_init_event_ring:
         sd t0,ERDP(s1)
         sd a0,ERSTBA(s1)
 
-        ld s1,(sp)
-        sfree 8
+        restore
         ret
 
 xhcl_setup:
-        salloc 8
-        sd s1,(sp)
+        save sn=1
 
         ld s1,xhcl_regs
 
@@ -167,15 +164,14 @@ xhcl_setup:
 
         sd a0,CRCR(s1)
 
-        ld s1,(sp)
-        sfree 8
+        restore
         ret
 
 
 
 
 xhcl_init_regs:
-        salloc 0
+        save
 
         ld t0,xhcl_regs
 
@@ -209,25 +205,25 @@ xhcl_init_regs:
         andi t1,t1,0x2
         bnez t1,1b
 
-        sfree 0
+        restore
         ret
 
 xhcl_init_pci:
-        salloc 8
+        save dn=1
 
         li a0,XHCL_PCI_ID
         call pci_scan
-        sd a0,(sp)
+        sd a0,_d0(sp)
 
         li a1,0x0
         call pci_allocate_bar_to_mmio_region
         la t0,xhcl_regs
         sd a0,(t0)
 
-        ld a0,(sp)
+        ld a0,_d0(sp)
         lwu t0,0x4(a0)
         ori t0,t0,0x7
         sw t0,0x4(a0)
 
-        sfree 8
+        restore
         ret
