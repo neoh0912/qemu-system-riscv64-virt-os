@@ -216,11 +216,7 @@ External_Interrupt_Handler_end:
 
 
 machine_print_heap:
-    salloc 24
-    sd s1,(sp)
-    sd s2,8(sp)
-    sd s3,16(sp)
-
+    save sn=3
     la s1,heap_start
 
 1:  addi sp,sp,-24
@@ -249,21 +245,11 @@ machine_print_heap:
     bge s1,t1,1b
     
 
-    ld s1,(sp)
-    ld s2,8(sp)
-    ld s3,16(sp)
-    sfree
-    ret
-
-machine_wfi:
-    salloc 0
-
-    sfree
+    restore
     ret
 
 machine_print_stack:
-    salloc 0
-
+    save
 
     ld s1,0x8(a0)
     ld s2,0x38(a0)
@@ -291,6 +277,6 @@ machine_print_stack:
     addi s3,s3,0x1
     blt s1,s2,1b
 
-    sfree
+    restore
     ret
     

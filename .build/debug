@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+rm -f build/objdump.txt
+riscv64-unknown-elf-objdump -D build/bin | tr "\t" "    " >> build/objdump.txt
+nano -v build/objdump.txt

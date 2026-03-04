@@ -21,62 +21,9 @@ bios_escape_sequence:
     li t0,0x4F #[ri [O]
     bne a0,t0,2f
     call uart_get
-    li t0,0x50 #[ri [P]
-    bne a0,t0,1f
-    call bios_write_disk
-1:  li t0,0x51 #[ri [R]
-    bne a0,t0,2f
-    call bios_read_disk
 2:    
     restore
     ret
-
-bios_write_disk:
-    save dn=1
-    
-    la a0,bios_store_str
-    call print_string
-    la a0,bios_addr_str    
-    call print_string
-    call bios_input_hex
-    sd a0,_d0(sp)
-    la a0,bios_input_buffer
-    call bios_input_string
-    mv a2,a0
-    ld a0,_d0(sp)
-    la a1,bios_input_buffer
-    call ivshmem_sb
-    call print_newline
-
-    restore
-    ret
-
-bios_read_disk:
-    save dn=1
-
-    la a0,bios_load_str
-    call print_string
-    la a0,bios_addr_str 
-    call print_string
-    call bios_input_hex
-    sd a0,_d0(sp)
-    la a0,bios_len_str
-    call print_string
-    call bios_input_int
-    mv a2,a0
-    ld a0,_d0(sp)
-    la a1,bios_input_buffer
-    call ivshmem_lbu
-
-    add t0,a2,a1
-    sb zero,(t0)
-    
-    la a0,bios_input_buffer
-    call print_string    
-    call print_newline
-    restore
-    ret
-
 
 bios_input_hex:
     save sn=2

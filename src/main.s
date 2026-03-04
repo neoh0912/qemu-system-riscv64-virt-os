@@ -22,7 +22,6 @@ str: .string "NEOH"
 hex: .ascii "0123456789abcdef"
 HEX: .ascii "0123456789ABCDEF"
 .include "data/bios.s"
-.include "data/ivshmem.s"
 .include "data/machine.s"
 .include "data/device_manager.s"
 .include "data/image.s"
@@ -31,7 +30,6 @@ HEX: .ascii "0123456789ABCDEF"
         .align 16
 .include "bss/pci.s"
 .include "bss/uart.s"
-.include "bss/ivshmem.s"
 .include "bss/bios.s"
 .include "bss/device_manager.s"
         .align 16
@@ -44,7 +42,6 @@ HEX: .ascii "0123456789ABCDEF"
 .include "start.s"
         .section .text.drivers
 .include "drivers/pci.s"
-.include "drivers/ivshmem.s"
 .include "drivers/PLIC.s"
 
 .include "drivers/uart/main.s"
