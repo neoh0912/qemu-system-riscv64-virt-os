@@ -1,0 +1,97 @@
+## Syntax highlighting for assembler.
+##
+syntax "riscv" "\.(S|s|data)$"
+magic "assembler source"
+comment "#"
+
+
+color green ".*"
+color lightcyan "([_\.\$a-zA-Z][0-9a-zA-Z_\.\$]*|[1-9]):"
+color lightcyan "(call|tail|j) +.*"
+color lightcyan "la +(a[0-7]|t[0-6]|s([0-9]|1[0-1])|zero|sp|fp|ra) *,.*"
+color lightcyan "[1-9][fb]"
+
+color normal "[,\=]"
+
+## INSTRUCTIONS
+## I
+# LOAD
+color lightyellow "\b(lb|lh|lw|ld|lbu|lhu|lwu)\b"
+# STORE
+color lightyellow "\b(sb|sh|sw|sd)\b"
+# LOAD IMMEDIATE
+color lightyellow "\b(li|lui|auipc)\b"
+# MOVE
+color lightyellow "\b(mv|sext\.w|sext\.b)\b"
+# ALU
+color lightyellow "\b(addi|add|addiw|addw|sub|subw|neg|negw)\b"
+# SET IF
+color blue "\b(seqz|snez|slti|slt|sltiu|sltu)\b"
+# BITWISE
+color lightyellow "\b(andi|and|ori|or|xori|xor|not)\b"
+# SHIFT
+color lightyellow "\b(slli|sll|slliw|sllw|slli.wu|srli|srl|srliw|srlw|srai|sra|sraiw|sraw)\b"
+# JUMP
+color blue "\b(j|jal|jr|jalr|call|tail|ret)\b"
+# BRANCH
+color lightblue "\b(beq|bne|blt|bgt|bge|ble|bltu|bgtu|bgeu|bleu)\b"
+# SPECIAL
+color bold,red,green "\b(nop|ecall|ebreak|fence|fence.i|csrrw|csrrs|csrrc|csrrwi|csrrsi|csrrci|sret|mret|wfi|sfence.vma|csrr|csrw|csrs|csrc)\b"
+
+# PSEUDO
+color bold,lightyellow "\b(la|mv)\b"
+color bold,lightblue "\b(beqz|bnez|blez|bgez|bltz|bgtz|bgt|ble|bgtu|bleu)\b"
+
+## M
+color brightyellow "\b(mul|mulw|mulh|mulhu|mulhsu|div|divu|divuw|divw|rem|remu|remuw|remw)\b"
+
+## ZBB
+color lightyellow "\b(andn|clz|clzw|cpop|cpopw|ctz|ctzw|max|maxu|min|minu|orc.b|orn|rev8|rol|rolw|ror|rori|roriw|rorw|sext.b|sext.h|xnor|zext.h)\b"
+
+
+## directives
+color green "\.(abort|ABORT|align|altmacro|ascii|asciz|attach_to_group|balign|balignw|balignl|bss|byte|comm|data|dc\.a|dc\.b|dc\.d|dc\.l|dc\.s|dc\.w|dc\.x|dcb\.b|dcb\.d|dcb\.l|dcb\.s|dcb\.w|dcb\.x|ds\.b|ds\.d|ds\.l|ds\.p|ds\.s|ds\.w|ds\.x|def|desc|dim|double|eject|else|elseif|endm|endef|endfunc|endif|end|equ|equiv|eqv|err|error|exitm|extern|fail|file|fill|float|func|global|gnu_attribute|hidden|hword|ident|if|incbin|include|int|internal|irp|irpc|lcomm|lflags|line|linkonce|list|ln|loc|loc_mark_labels|local|long|macro|mri|noaltmacro|nolist|nop|nops|octa|offset|org|p2align|p2alignw|p2alignl|popsection|previous|print|protected|psize|purgem|pushsection|quad|reloc|rept|sbttl|scl|section|set|short|single|size|skip|sleb128|space|stabd|string|struct|subsection|symver|tag|text|title|tls_common|type|uleb128|val|version|vtable_entry|vtable_inherit|warning|weak|weakref|word|zero|zerow|2byte|4byte|8byte)"
+color green "\.(endr)"
+
+## registers
+color lightcyan "\ba[0-7]\b"
+color purple "\bt[0-6]\b"
+color gray "\bs([0-9]|1[0-1])\b"
+# special
+color italic,magenta "\b(zero|sp|fp|ra)\b"
+
+## numbers
+color red "-{0,1}\b0x[0-9A-Fa-f]+\b"
+color red "-{0,1}\b[0-9]+\b"
+color lightcyan "[1-9]:"
+## chars
+color lightmagenta "('.{0,1}'|´.{0,1}´)"
+## strings
+color lightred ""[^"]*""
+color ,normal " "
+## address
+color bold,green "[\(\)]"
+
+
+
+# Comments.
+# Trailing whitespace.
+color bold,gray "#([^\[].+|\[[^rgybmc].+|$)"
+
+color bold,red     "#\[r.*"
+color bold,black,red     "#\[ri.*"
+color bold,green   "#\[g.*"
+color bold,black,green   "#\[gi.*"
+color bold,yellow  "#\[y.*"
+color bold,black,yellow  "#\[yi.*"
+color bold,blue    "#\[b.*"
+color bold,black,blue    "#\[bi.*"
+color bold,magenta "#\[m.*"
+color bold,black,magenta "#\[mi.*"
+color bold,cyan    "#\[c.*"
+color bold,black,cyan    "#\[ci.*"
+color bold,white   "#\[w.*"
+color bold,black,white   "#\[wi.*"
+color bold,black,gray "#\[i.*"
+
+color gray "#\[([rgybmc]i?|i)\s*"

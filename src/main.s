@@ -54,7 +54,9 @@ HEX: .ascii "0123456789ABCDEF"
 .include "drivers/uart/print_number.s"
 
 .include "drivers/vga/main.s"
-.include "drivers/vga/sprite.s"
+
+.include "drivers/bochs-display/main.s"
+.include "drivers/bochs-display/sprite.s"
 
 #.include "drivers/usb/xhcl/init.s"
 #.include "drivers/usb/xhcl/api.s"

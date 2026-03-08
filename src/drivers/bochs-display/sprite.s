@@ -30,7 +30,7 @@ res_x = 0x10
 .endm        
 
 
-vga_write_sprite:
+bochs_write_sprite:
 #[ci [ device, surface: *void, x,y,w,h]
 fb = 0x0
 res_x = 0x10
