@@ -101,6 +101,7 @@ virtio_pci_transport_get_regs:
         lbu t1,0x3(s2)
         slli t1,t1,0x3
         add t1,t1,sp
+        addi t1,t1,_d0
         sd t0,(t1)
         
 1:      lbu t0,0x1(s2)
@@ -110,10 +111,10 @@ virtio_pci_transport_get_regs:
         j 2b
 
         
-1:      ld a0,0x8(sp)
-        ld a1,0x10(sp)
-        ld a2,0x18(sp)
-        ld a3,0x20(sp)
+1:      ld a0,_d1(sp)
+        ld a1,_d2(sp)
+        ld a2,_d3(sp)
+        ld a3,_d4(sp)
         ld a4,_d5(sp)
         restore
         ret

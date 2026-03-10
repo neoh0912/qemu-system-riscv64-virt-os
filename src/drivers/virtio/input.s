@@ -181,7 +181,6 @@ virtio_input_read_used_ring:
 idx = 0x2
 ring = 0x4
         save an=3,sn=6
-
 #[g -- Read Used_ring->idx --
 
         ld s1,VQ_USED_RING(a0)
@@ -223,6 +222,5 @@ ring = 0x4
         j 1b
 
 1:      sd s2,LAST_SEEN_USED(s5)
-
         restore 
         ret

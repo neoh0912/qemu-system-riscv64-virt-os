@@ -1,0 +1,2 @@
+#!/usr/bin/bash
+qemu-img create -f raw res/hd0.img 256M

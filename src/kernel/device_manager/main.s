@@ -28,6 +28,9 @@ keyboard = 0x6472616F6279656B
 display = 0x0079616C70736964
         li a0,display
         call create_device_tree
+blkdrive = 0x65766972646B6C62
+        li a0,blkdrive
+        call create_device_tree
 
         li a0,0x8*sizeof_device_descriptor_table
         call malloc

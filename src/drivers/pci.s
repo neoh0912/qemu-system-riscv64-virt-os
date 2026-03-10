@@ -149,9 +149,7 @@ pci_register_driver:
 
         la t0,pci_drivers
         ld t1,(t0)
-        bnez t1,1f
-        mv t1,a0
-1:      sd t1,driver__next(a0)
+        sd t1,driver__next(a0)
         sd a0,(t0)
 
         restore
@@ -174,7 +172,8 @@ pci_scan:
         lwu t1,0x8(a0)
         srli t1,t1,0x10
         ld s3,pci_drivers
-        
+
+        ebreak
 4:      lwu t2,driver__pci_id(s3)
         bne t2,t0,3f
         lwu t2,driver__class_code(s3)
@@ -186,12 +185,13 @@ pci_scan:
         jalr ra,t2,0x0
         ld a4,driver__device_id(s3)
         call device_manager_register_device
-        
+        ebreak
         j 4f   
 
-3:      mv t2,s3
-        ld s3,driver__next(t2)
-        bne s3,t2,4b
+3:      ebreak
+        ld s3,driver__next(s3)
+#        ebreak
+        bnez s3,4b
         
 
 4:      addi s2,s2, 0x1

@@ -4,6 +4,7 @@ bin
 *.elf
 *.bin
 *.out
+*.img
 
 # Object files and Listings
 *.o
