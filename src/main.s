@@ -63,6 +63,7 @@ HEX: .ascii "0123456789ABCDEF"
 
 .include "drivers/virtio/pci/transport.s"
 .include "drivers/virtio/pci/keyboard.s"
+.include "drivers/virtio/pci/block.s"
 .include "drivers/virtio/input.s"
 
         .section .text.kernel

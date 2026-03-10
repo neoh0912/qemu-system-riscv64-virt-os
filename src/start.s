@@ -17,7 +17,9 @@ _start:
     call device_manager_init
 
     call virtio_pci_keyboard_init
+    call virtio_pci_block_device_init
     call bochs_init
+    
 
     la a0,pci_scan
     call device_manager_register_device_scanner

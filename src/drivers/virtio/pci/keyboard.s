@@ -43,10 +43,6 @@ virtio_pci_keyboard_init_device:
 PLIC_ID = _d0
 DEVICE = _d1
 
-        sd a0,_a0(sp)
-        sd a1,_a1(sp)
-        sd a2,_a2(sp)
-
         li a1,0x20
         call pci_set_interrupt_line
         ld a0,_a0(sp)
