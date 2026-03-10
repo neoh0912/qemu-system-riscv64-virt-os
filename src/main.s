@@ -44,7 +44,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "start.s"
         .section .text.drivers
 .include "drivers/pci.s"
-.include "drivers/PLIC.s"
+.include "drivers/plic.s"
 
 .include "drivers/uart/main.s"
 .include "drivers/uart/interrupt.s"
