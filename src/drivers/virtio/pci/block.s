@@ -4,12 +4,9 @@
 .equ DEVICE_CONFIG,0x18
 .equ NOTI_OFF_MULT,0x20
 .equ VQUEUE,0x28
+.equ BLOCK_SIZE,0x30
 
-.equ VQ_DESCRIPTOR_TABLE,0x0
-.equ VQ_AVAIL_RING,0x8
-.equ VQ_USED_RING,0x10
-.equ LAST_SEEN_USED,0x18
-.equ VQ_SIZE,0x20
+.include "const/virtio/virt_queue.s"
 
 virtio_pci_block_device_init:
 VIO_PCI_BLOCK_DEVICE_ID = 0x010010011af4
@@ -24,10 +21,30 @@ blkdrive = 0x65766972646B6C62
         ret        
 
 virtio_pci_block_device_read:
+        save
+
+        li t0,0x0
+        bne a1,t0,1f
+        mv a1,a2
+        mv a2,a3
+        call virtio_pci_block_device_read_sector
+        j 2f
+1:        
+2:
+        restore
         ret
 virtio_pci_block_device_write:
         ret
 virtio_pci_block_device_ioctl:
+        ret
+
+virtio_pci_block_device_read_sector:
+#[ci [ device, sector, buffer ]
+        save
+
+        
+
+        restore
         ret
         
 virtio_pci_block_device_init_device:
@@ -47,6 +64,15 @@ DEVICE = _d0
         ld t1,NOTIFICATION(t0)
         sh zero,(t1)
         fence w,w
+
+        ld t0,DEVICE(sp)
+        ld t1,DEVICE_CONFIG(t0)
+        lwu t2,20(t1)
+        sd t2,BLOCK_SIZE(t0)
+
+        mv a0,t2
+        call print_int_hex
+        call print_newline
 
         ld a0,DEVICE(sp)
         la a1,virtio_pci_block_device_read

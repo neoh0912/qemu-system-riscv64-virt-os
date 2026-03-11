@@ -61,4 +61,5 @@ blkdrive
         '\0' = write buffer to sector
             void write(...,sector,buffer)
     void ioctl(device: *device_object, operation: char)
-        not implemented
+        '\0' = get num of blocks
+        '\1' = get size of block in num
