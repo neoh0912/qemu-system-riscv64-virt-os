@@ -171,9 +171,9 @@ pci_scan:
 #[g -- Loop through drivers --
         lwu t1,0x8(a0)
         srli t1,t1,0x10
-        ld s3,pci_drivers
+        la s3,pci_drivers
+        ld s3,(s3)
 
-        ebreak
 4:      lwu t2,driver__pci_id(s3)
         bne t2,t0,3f
         lwu t2,driver__class_code(s3)
@@ -185,12 +185,9 @@ pci_scan:
         jalr ra,t2,0x0
         ld a4,driver__device_id(s3)
         call device_manager_register_device
-        ebreak
         j 4f   
 
-3:      ebreak
-        ld s3,driver__next(s3)
-#        ebreak
+3:      ld s3,driver__next(s3)
         bnez s3,4b
         
 
@@ -227,7 +224,7 @@ next = 0x10
         ld t0,_a2(sp)
         addi t0,t0,-0x20
         slli t0,t0,0x3
-        la t1,pci_handlers
+        ld t1,pci_handlers
         add t0,t0,t1
         ld t1,(t0)
         
@@ -248,7 +245,7 @@ callback = 0x8
 next = 0x10
         save an=1,sn=1
 
-        la t0,pci_handlers
+        ld t0,pci_handlers
         addi t1,a0,-0x20
         slli t1,t1,0x3
 

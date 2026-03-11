@@ -156,7 +156,6 @@ _ptr = _d1
         ld t1,device_tree__start(t0)
         sd t1,device__next(a0)
         sd a0,device_tree__start(t0)
-        
         ld t1,_id(sp)
         sd t1,device__id(a0)
 
