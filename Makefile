@@ -5,7 +5,10 @@ ABI = lp64
 VPATH = src:res
 BUILD_DIR = build
 
-.PHONY: build all clean run
+.PHONY: init build all clean run
+
+init:
+	./.build/create_image
 
 run:
 	exec ./.build/run

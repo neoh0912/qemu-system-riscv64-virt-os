@@ -1,5 +1,6 @@
 #!/usr/bin/bash
 
+
 qemu-system-riscv64 \
 -bios build/bin \
 -M virt \
@@ -16,5 +17,4 @@ while [ ! -S /tmp/qemu-serial.sock ]; do
 done
 
 exec tmux new-session "socat STDIO,raw,echo=0 UNIX-CONNECT:/tmp/qemu-serial.sock" \; \
-     split-window -h "socat STDIO UNIX-CONNECT:/tmp/qemu-monitor.sock"
-
+     split-window -h "socat STDIO UNIX-CONNECT:/tmp/qemu-monitor.sock" \; \
