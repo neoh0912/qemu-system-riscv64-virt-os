@@ -5,9 +5,14 @@ ABI = lp64
 VPATH = src:res
 BUILD_DIR = build
 
-.PHONY: all clean
+.PHONY: build all clean run
 
-all: clean $(BUILD_DIR)/bin
+run:
+	exec ./.build/run
+
+all: clean build run
+
+build: $(BUILD_DIR)/bin
 
 $(BUILD_DIR)/bin: main.s main.ld
 	mkdir -p $(BUILD_DIR)

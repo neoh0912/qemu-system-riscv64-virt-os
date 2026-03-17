@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+
 qemu-system-riscv64 \
 -bios build/bin \
 -M virt \
@@ -7,7 +8,13 @@ qemu-system-riscv64 \
 -device virtio-keyboard-pci \
 -drive file=res/hd0.img,if=none,format=raw,id=hd0 \
 -device virtio-blk-pci,drive=hd0 \
--serial unix:/tmp/qemu-serial.sock,server,wait \
--monitor unix:/tmp/qemu-monitor.sock,server,nowait & \
+-serial unix:/tmp/qemu-serial.sock,server,nowait \
+-monitor unix:/tmp/qemu-monitor.sock,server,nowait &
+
+while [ ! -S /tmp/qemu-serial.sock ]; do
+  sleep 0.1
+done
+
 exec tmux new-session "socat STDIO,raw,echo=0 UNIX-CONNECT:/tmp/qemu-serial.sock" \; \
      split-window -h "socat STDIO UNIX-CONNECT:/tmp/qemu-monitor.sock"
+
