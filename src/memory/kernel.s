@@ -5,12 +5,14 @@ kernel_heap_init:
 
 malloc:
 #[ci [ a0 = size ]
+        # TODO: Add mutex/lock here when adding threading
         mv a1,a0
         la a0,heap_start
         tail heap_alloc
 
 malloc_aligned:
 #[ci [ a0 = size, a1 = alignment ]
+        # TODO: Add mutex/lock here when adding threading
         mv a2,a1
         mv a1,a0
         la a0,heap_start

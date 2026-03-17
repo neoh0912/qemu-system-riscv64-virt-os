@@ -5,8 +5,8 @@ _start:
     la t0,_bss_start
     la t1,_bss_end
     bge t0,t1,2f
-1:  sw zero,(t0)
-    addi t0,t0,0x4
+1:  sd zero,(t0)
+    addi t0,t0,0x8
     blt t0,t1,1b
 2:
 
