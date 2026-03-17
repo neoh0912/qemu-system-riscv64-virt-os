@@ -7,4 +7,7 @@ qemu-system-riscv64 \
 -device virtio-keyboard-pci \
 -drive file=res/hd0.img,if=none,format=raw,id=hd0 \
 -device virtio-blk-pci,drive=hd0 \
--monitor  stdio
+-serial unix:/tmp/qemu-serial.sock,server,wait \
+-monitor unix:/tmp/qemu-monitor.sock,server,nowait & \
+exec tmux new-session "socat STDIO,raw,echo=0 UNIX-CONNECT:/tmp/qemu-serial.sock" \; \
+     split-window -h "socat STDIO UNIX-CONNECT:/tmp/qemu-monitor.sock"
