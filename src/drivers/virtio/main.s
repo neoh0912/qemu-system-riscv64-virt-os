@@ -1,5 +1,5 @@
-.include "conet/virtio/virt_queue.s"
-virtio_virtqueue_add_buffer:
+.include "const/virtio/virt_queue.s"
+virtio_supply_buffer_to_queue:
 #[ci [ virt_queue, buffer, len, flag ]
         save
 addr = 0x0
@@ -17,6 +17,8 @@ next = 0xe
         add t3,t3,t1
         slli t4,t2,0x4
         add t4,t4,t0
+        ld t5,addr(t4)
+        bnez t5,1f
         sd a1,addr(t4)
         sd a2,len(t4)
         sd a3,flags(t4)
@@ -26,6 +28,9 @@ next = 0xe
         addi t2,t2,0x1
         sh t2,0x2(t1)
         fence rw,rw
-
+        li a0,0x0
+        j 2f
+1:      li a0,-EAGAIN
+2:
         restore
         ret

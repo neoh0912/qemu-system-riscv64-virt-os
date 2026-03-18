@@ -61,6 +61,7 @@ HEX: .ascii "0123456789ABCDEF"
 #.include "drivers/usb/xhcl/init.s"
 #.include "drivers/usb/xhcl/api.s"
 
+.include "drivers/virtio/main.s"
 .include "drivers/virtio/pci/transport.s"
 .include "drivers/virtio/pci/keyboard.s"
 .include "drivers/virtio/pci/block.s"

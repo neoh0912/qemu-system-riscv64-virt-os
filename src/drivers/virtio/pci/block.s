@@ -4,15 +4,28 @@
 .equ DEVICE_CONFIG,0x18
 .equ NOTI_OFF_MULT,0x20
 .equ VQUEUE,0x28
-.equ BLOCK_SIZE,0x30
+.equ DEVICE_INFO,0x30
+
+sizeof_DEVICE_INFO = 0x10
+BLOCK_SIZE = 0x0
+BLOCK_COUNT = 0x8
 
 .include "const/virtio/virt_queue.s"
 
-virtio_pci_block_device_init:
-VIO_PCI_BLOCK_DEVICE_ID = 0x010010011af4
+VIRTIO_BLK_T_IN           = 0 
+VIRTIO_BLK_T_OUT          = 1 
+VIRTIO_BLK_T_FLUSH        = 4 
+VIRTIO_BLK_T_GET_ID       = 8 
+VIRTIO_BLK_T_GET_LIFETIME = 10 
+VIRTIO_BLK_T_DISCARD      = 11 
+VIRTIO_BLK_T_WRITE_ZEROES = 13 
+VIRTIO_BLK_T_SECURE_ERASE   = 14
+
+virtio_pci_blk_init:
+VIO_PCI_blk_ID = 0x010010011af4
         save
-        li a0,VIO_PCI_BLOCK_DEVICE_ID
-        la a1,virtio_pci_block_device_init_device
+        li a0,VIO_PCI_blk_ID
+        la a1,virtio_pci_blk_init_device
         mv a2,zero
 blkdrive = 0x65766972646B6C62
         li a3,blkdrive
@@ -20,69 +33,147 @@ blkdrive = 0x65766972646B6C62
         restore
         ret        
 
-virtio_pci_block_device_read:
+virtio_pci_blk_read:
         save
 
         li t0,0x0
         bne a1,t0,1f
         mv a1,a2
         mv a2,a3
-        call virtio_pci_block_device_read_sector
+        call virtio_pci_blk_read_sector
         j 2f
 1:        
 2:
         restore
         ret
-virtio_pci_block_device_write:
+virtio_pci_blk_write:
         ret
-virtio_pci_block_device_ioctl:
+virtio_pci_blk_ioctl:
         ret
 
-virtio_pci_block_device_read_sector:
+virtio_pci_blk_read_sector:
 #[ci [ device, sector, buffer ]
-        save
+sizeof_virtio_blk_req = 0x10+512+1
+        save an=3
 
+        li a0,VIRTIO_BLK_T_IN
+        li a2,0
+        call virtio_blk_create_request
+        mv a1,a0
+        ld a0,_a0(sp)
+        ld a0,VQUEUE(a0)
+        li a2,sizeof_virtio_blk_req
+        li a3,0
+        call virtio_supply_buffer_to_queue
+        break_on_error
+        
+        ld t0,_a0(sp)
+        ld t1,NOTIFICATION(t0)
+        sh zero,(t1)
+        fence w,w
         
 
         restore
         ret
+
+
+
+virtio_blk_create_request:
+#[ci [ type, sector, data ]
+sizeof_virtio_blk_req = 0x10+512+1
+type = 0x0
+sector = 0x8
+data = 0x10
+        save an=3
+
+        li a0,sizeof_virtio_blk_req
+        call malloc
+        li a2,sizeof_virtio_blk_req
+        li a1,0x0
+        call memset
+        ld t0,_a0(sp)
+        sw t0,type(a0)
+        sd a0,_a0(sp)
+        ld t0,_a1(sp)
+        sd t0,sector(a0)
+        ld t0,_a2(sp)
+        beqz t0,1f
+        addi a0,a0,data
+        mv a1,t0
+        li a2,512
+        call memcpy
+1:      ld a0,_a0(sp)
+        restore
+        ret
         
-virtio_pci_block_device_init_device:
+virtio_pci_blk_init_device:
 #[ci [ a0 = address of config space , a1 = bus #, a2 = device #]
-        save an=3,dn=1
+        save an=3,dn=2
 DEVICE = _d0
+PLIC_ID = _d1
+
+        li a1,0x20
+        call pci_set_interrupt_line
+        ld a0,_a0(sp)
+        ld a1,_a2(sp)
+        call pci_get_plic_id
+        sd a0,PLIC_ID(sp)
+        ld a0,_a0(sp)
         call virtio_pci_transport_init_device
         sd a0,DEVICE(sp)
 
-        call virtio_pci_block_device_handshake
+        la a1,virtio_pci_blk_callback
+        ld a2,PLIC_ID(sp)
+        call pci_register_callback
+
+        ld a0,PLIC_ID(sp)
+        li a1,0x1
+        call plic_set_prio
+        li a0,0x0
+        li a1,0x0
+        call plic_set_prio_thres
+        ld a0,PLIC_ID(sp)
+        call plic_enable        
+    
+        ld a0,DEVICE(sp)
+        ld a0,COMMON_CONFIG(a0)
+        call virtio_pci_blk_handshake
         ld t0,DEVICE(sp)
         ld a0,VQUEUE(t0)
         ld a1,COMMON_CONFIG(t0)
-        call virtio_pci_block_device_allocate_virtqueue
+        call virtio_pci_blk_allocate_virtqueue
         ld t0,DEVICE(sp)
 
         ld t1,NOTIFICATION(t0)
         sh zero,(t1)
         fence w,w
 
+        li a0,sizeof_DEVICE_INFO
+        call malloc
         ld t0,DEVICE(sp)
+        sd a0,DEVICE_INFO(t0)
+
         ld t1,DEVICE_CONFIG(t0)
         lwu t2,20(t1)
-        sd t2,BLOCK_SIZE(t0)
-
-        mv a0,t2
-        call print_int_hex
-        call print_newline
+        sd t2,BLOCK_SIZE(a0)
 
         ld a0,DEVICE(sp)
-        la a1,virtio_pci_block_device_read
-        la a2,virtio_pci_block_device_write
-        la a3,virtio_pci_block_device_ioctl
+        la a1,virtio_pci_blk_read
+        la a2,virtio_pci_blk_write
+        la a3,virtio_pci_blk_ioctl
 
         restore
         ret
 
-virtio_pci_block_device_allocate_virtqueue:
+virtio_pci_blk_callback:
+        save
+
+        
+
+        restore
+        ret
+
+virtio_pci_blk_allocate_virtqueue:
         save an=2,sn=2
 
         sh zero,0x16(a1)
@@ -155,7 +246,7 @@ virtio_pci_block_device_allocate_virtqueue:
         restore
         ret
 
-virtio_pci_block_device_handshake:
+virtio_pci_blk_handshake:
         save
 DEVICE_STATUS = 0x14
 DEVICE_FEATURE_SELECT = 0x0
@@ -163,7 +254,6 @@ DEVICE_FEATURE = 0x4
 DRIVER_FEATURE_SELECT = 0x8
 DRIVER_FEATURE = 0xc
 
-        ld a0,COMMON_CONFIG(a0)
         sb zero,DEVICE_STATUS(a0)
         fence rw,rw
         li t1,0x1
