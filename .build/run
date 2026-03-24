@@ -8,7 +8,7 @@ qemu-system-riscv64 \
 -device bochs-display \
 -device virtio-keyboard-pci \
 -drive file=res/hd0.img,if=none,format=raw,id=hd0 \
--device virtio-blk-pci,drive=hd0 \
+-device virtio-blk-pci-non-transitional,drive=hd0 \
 -serial unix:/tmp/qemu-serial.sock,server,nowait \
 -monitor unix:/tmp/qemu-monitor.sock,server,nowait &
 

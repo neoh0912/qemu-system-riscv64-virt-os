@@ -22,7 +22,7 @@ VIRTIO_BLK_T_WRITE_ZEROES = 13
 VIRTIO_BLK_T_SECURE_ERASE   = 14
 
 virtio_pci_blk_init:
-VIO_PCI_blk_ID = 0x010010011af4
+VIO_PCI_blk_ID = 0x010010421af4
         save
         li a0,VIO_PCI_blk_ID
         la a1,virtio_pci_blk_init_device
@@ -59,27 +59,25 @@ sizeof_virtio_blk_req_header = 0x10
         li a0,VIRTIO_BLK_T_IN
         call virtio_blk_create_request
         sd a0,_d0(sp)
-        sd a1,_d1(sp)
-        sd a2,_d2(sp)
-#[ci [ virt_queue, buffer, len, flag ]
+        sd a1,_d3(sp)
+        sd a2,_d6(sp)
+#[ci [ virt_queue, requests, num]
         ld a0,_a0(sp)
         ld a0,VQUEUE(a0)
         addi a1,sp,_d0
         li t0,sizeof_virtio_blk_req_header
-        sd t0,_d3(sp)
+        sd t0,_d1(sp)
         li t0,0x200
         sd t0,_d4(sp)
         li t0,0x1
-        sd t0,_d5(sp)
-        addi a2,sp,_d3
-        li t0,0x0
-        sd t0,_d6(sp)
-        li t0,0x2
         sd t0,_d7(sp)
+        li t0,0x0
+        sd t0,_d2(sp)
+        li t0,0x2
+        sd t0,_d5(sp)
         li t0,0x2
         sd t0,_d8(sp)
-        addi a3,sp,_d6
-        li a4,3
+        li a2,3
         call virtio_supply_buffer_chain_to_virtqueue
         break_on_error
         
@@ -88,6 +86,7 @@ sizeof_virtio_blk_req_header = 0x10
         sh zero,(t1)
         fence w,w
         
+        wfi        
 
         restore
         ret
@@ -183,7 +182,7 @@ PLIC_ID = _d1
 virtio_pci_blk_callback:
         save
 
-        
+        db 'd'
 
         restore
         ret
@@ -278,7 +277,7 @@ DRIVER_FEATURE = 0xc
         sb t1,DEVICE_STATUS(a0)
         fence rw,rw
         
-        li t1,(1 << 9) | (1 << 6)
+        li t1,(0 << 9) | (1 << 6)
         sw t1,DRIVER_FEATURE(a0)
 
         li t1,0x1
