@@ -53,18 +53,34 @@ virtio_pci_blk_ioctl:
 
 virtio_pci_blk_read_sector:
 #[ci [ device, sector, buffer ]
-sizeof_virtio_blk_req = 0x10+512+1
-        save an=3
+sizeof_virtio_blk_req_header = 0x10
+        save an=3,dn=9
 
         li a0,VIRTIO_BLK_T_IN
-        li a2,0
         call virtio_blk_create_request
-        mv a1,a0
+        sd a0,_d0(sp)
+        sd a1,_d1(sp)
+        sd a2,_d2(sp)
+#[ci [ virt_queue, buffer, len, flag ]
         ld a0,_a0(sp)
         ld a0,VQUEUE(a0)
-        li a2,sizeof_virtio_blk_req
-        li a3,0
-        call virtio_supply_buffer_to_queue
+        addi a1,sp,_d0
+        li t0,sizeof_virtio_blk_req_header
+        sd t0,_d3(sp)
+        li t0,0x200
+        sd t0,_d4(sp)
+        li t0,0x1
+        sd t0,_d5(sp)
+        addi a2,sp,_d3
+        li t0,0x0
+        sd t0,_d6(sp)
+        li t0,0x2
+        sd t0,_d7(sp)
+        li t0,0x2
+        sd t0,_d8(sp)
+        addi a3,sp,_d6
+        li a4,3
+        call virtio_supply_buffer_chain_to_virtqueue
         break_on_error
         
         ld t0,_a0(sp)
@@ -80,29 +96,28 @@ sizeof_virtio_blk_req = 0x10+512+1
 
 virtio_blk_create_request:
 #[ci [ type, sector, data ]
-sizeof_virtio_blk_req = 0x10+512+1
+sizeof_virtio_blk_req_header = 0x10
 type = 0x0
 sector = 0x8
 data = 0x10
         save an=3
-
-        li a0,sizeof_virtio_blk_req
+        li a0,sizeof_virtio_blk_req_header
         call malloc
-        li a2,sizeof_virtio_blk_req
+        li a2,sizeof_virtio_blk_req_header
         li a1,0x0
         call memset
         ld t0,_a0(sp)
         sw t0,type(a0)
-        sd a0,_a0(sp)
         ld t0,_a1(sp)
         sd t0,sector(a0)
-        ld t0,_a2(sp)
-        beqz t0,1f
-        addi a0,a0,data
-        mv a1,t0
-        li a2,512
-        call memcpy
-1:      ld a0,_a0(sp)
+        sd a0,_a0(sp)
+        li a0,1
+        call malloc
+        sb zero,(a0)
+        mv a2,a0
+        ld a0,_a0(sp)
+        ld a1,_a2(sp)
+
         restore
         ret
         

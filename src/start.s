@@ -28,7 +28,10 @@ _start:
 
     call device_manager_print_devices
 
-    
+    call blk_dev_open
+    li a1,0
+    li a2,0
+    call blk_dev_read
 
 1:
     wfi

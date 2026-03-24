@@ -73,6 +73,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "kernel/device_manager/debug.s"
 .include "kernel/device_manager/display.s"
 .include "kernel/device_manager/keyboard.s"
+.include "kernel/device_manager/blk_dev.s"
         .section .text.memory
 .include "memory/memcpy.s"
 .include "memory/heap.s"
