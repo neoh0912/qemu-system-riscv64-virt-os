@@ -12,6 +12,7 @@ qemu-system-riscv64 \
 -serial unix:/tmp/qemu-serial.sock,server,nowait \
 -monitor unix:/tmp/qemu-monitor.sock,server,nowait &
 
+
 while [ ! -S /tmp/qemu-serial.sock ]; do
   sleep 0.1
 done

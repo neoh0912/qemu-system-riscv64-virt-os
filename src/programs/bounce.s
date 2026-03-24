@@ -168,3 +168,4 @@ bounce_loop:
     break_on_error
     j bounce_loop
 
+    restore

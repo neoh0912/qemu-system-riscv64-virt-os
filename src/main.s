@@ -86,4 +86,5 @@ HEX: .ascii "0123456789ABCDEF"
 .include "bios.s"
         .section .text.programs
 .include "programs/bounce.s"
+.include "tests.s"
     .section .text.end

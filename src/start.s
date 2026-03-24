@@ -28,18 +28,11 @@ _start:
 
     call device_manager_print_devices
 
-    call blk_dev_open
-    li a1,0
-    li a2,0
-    call blk_dev_read
+    call test_blk
 
-1:
-    wfi
-    j 1b    
-
-#    li a0,0x0
-#    call keyboard_open
-#    break_on_error
-#    mv s11,a0
-#    
-#    j bounce
+    li a0,0x0
+    call keyboard_open
+    break_on_error
+    mv s11,a0
+    
+    j bounce

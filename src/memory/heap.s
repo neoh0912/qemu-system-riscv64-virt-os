@@ -9,7 +9,7 @@ prev = 0x10
         sw a1,size(a0)
         sw zero,alloc(a0)
         sd zero,next(a0)
-        sd a0,prev(a0)
+        sd zero,prev(a0)
         ret
 
 heap_find_next_free:
@@ -81,6 +81,7 @@ prev = 0x10
 heap_alloc:
 #[ci [ heap: *header, size: int ]
 alloc = 0x4
+size = 0x0
         save an=2
 _heap = _a0
 _size = _a1
@@ -90,9 +91,13 @@ _size = _a1
         call heap_find_next_free
         beqz a0,1f
         ld a1,_size(sp)
+        lwu t1,size(a0)
+        sub t2,t1,a1
+        li t1,sizeof_header
+        blt t2,t1,2f
         call heap_split_header
         sw zero,alloc(a1)
-        li t0,0x1
+2:      li t0,0x1
         sw t0,alloc(a0)
         addi a0,a0,sizeof_header
 1:      restore
@@ -153,8 +158,13 @@ _align = _a2
         sw t0,alloc(a1)
         mv a0,a1
         ld a1,_size(sp)
+        lwu t1,size(a0)
+        sub t2,t1,a1
+        li t1,sizeof_header
+        blt t2,t1,6f
         call heap_split_header
         sw zero,alloc(a1)
+6:        
         addi a0,a0,sizeof_header
         j 1f
         
@@ -167,13 +177,8 @@ _align = _a2
 9:      lbu t0,_b0(sp)
         beqz t0,1f
         
-8:      ld a0,_heap(sp)
-        ld a1,_size(sp)
-        addi a1,a1,-sizeof_header
-        ld a2,_align(sp)
-        slli a2,a2,0x1
-        call heap_alloc_aligned
-        
+8:      li a0,-1
+        ebreak       
 1:      restore
         ret
 
@@ -186,7 +191,7 @@ prev = 0x10
         save
         addi a0,a0,-sizeof_header
 
-        sw zero,(a0)
+        sw zero,alloc(a0)
         ld t0,prev(a0)
         beqz t0,1f
         lwu t1,alloc(t0)
