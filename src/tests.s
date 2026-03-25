@@ -1,9 +1,9 @@
 test_blk:
     save dn=1
 
-    li a0,512
+    li a0,1024
     call malloc
-    li a2,512
+    li a2,1024
     mv a1,zero
     call memset
     mv s11,a0
@@ -53,10 +53,5 @@ test_blk:
     mv a2,s11
     call blk_dev_write
 
-
-
-1:
-wfi
-j 1b
     restore
     ret

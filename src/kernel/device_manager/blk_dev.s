@@ -30,7 +30,7 @@ blk_dev_get_block_size:
 
 1:      ld t0,device__ioctl(a0)
         ld a0,device__device(a0)
-        li a1,0
+        li a1,1
        
         jalr ra,t0,0x0
         
@@ -55,7 +55,7 @@ blk_dev_get_total_blocks:
 
 1:      ld t0,device__ioctl(a0)
         ld a0,device__device(a0)
-        li a1,1
+        li a1,0
        
         jalr ra,t0,0x0
         

@@ -102,7 +102,9 @@ sizeof_virtio_blk_req_header = 0x10
         addi a1,sp,_d0
         li t0,sizeof_virtio_blk_req_header
         sd t0,_d1(sp)
-        li t0,0x200
+        ld t0,_a0(sp)
+        ld t0,DEVICE_INFO(t0)
+        ld t0,BLOCK_SIZE(t0)
         sd t0,_d4(sp)
         li t0,0x1
         sd t0,_d7(sp)
@@ -161,7 +163,9 @@ sizeof_virtio_blk_req_header = 0x10
         addi a1,sp,_d0
         li t0,sizeof_virtio_blk_req_header
         sd t0,_d1(sp)
-        li t0,0x200
+        ld t0,_a0(sp)
+        ld t0,DEVICE_INFO(t0)
+        ld t0,BLOCK_SIZE(t0)
         sd t0,_d4(sp)
         li t0,0x1
         sd t0,_d7(sp)
