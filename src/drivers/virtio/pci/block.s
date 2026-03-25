@@ -47,6 +47,17 @@ virtio_pci_blk_read:
         restore
         ret
 virtio_pci_blk_write:
+        save
+
+        li t0,0x0
+        bne a1,t0,1f
+        mv a1,a2
+        mv a2,a3
+        call virtio_pci_blk_write_sector
+        j 2f
+1:        
+2:
+        restore
         ret
 virtio_pci_blk_ioctl:
         ret
@@ -74,6 +85,65 @@ sizeof_virtio_blk_req_header = 0x10
         li t0,0x0
         sd t0,_d2(sp)
         li t0,0x2
+        sd t0,_d5(sp)
+        li t0,0x2
+        sd t0,_d8(sp)
+        li a2,3
+        call virtio_supply_buffer_chain_to_virtqueue
+        
+        slli t0,a0,0x4
+        ld a0,_a0(sp)
+        ld t1,VQUEUE(a0)
+        ld t1,VQ_DESCRIPTOR_TABLE(t1)
+        add t0,t0,t1
+        sd t0,_d0(sp)
+
+        ld a0,_a0(sp)
+        ld t1,NOTIFICATION(a0)
+        sh zero,(t1)
+        fence w,w
+
+1:      wfi
+
+        ld t0,_d0(sp)
+        ld t1,(t0)
+
+        beqz t1,1f
+        li t2,0x1
+        bne t1,t2,2f
+        ebreak
+2:      li t2,0x2
+        beq t1,t2,2f        
+        j 1b
+
+2:      ebreak
+        
+1:      restore
+        ret
+
+virtio_pci_blk_write_sector:
+#[ci [ device, sector, buffer ]
+sizeof_virtio_blk_req_header = 0x10
+        save an=3,dn=9
+        
+        li a0,VIRTIO_BLK_T_OUT
+        call virtio_blk_create_request
+        sd a0,_d0(sp)
+        sd a1,_d3(sp)
+        sd a2,_d6(sp)
+#[ci [ virt_queue, requests, num]
+        ld a0,_a0(sp)
+        ld a0,VQUEUE(a0)
+        addi a1,sp,_d0
+        li t0,sizeof_virtio_blk_req_header
+        sd t0,_d1(sp)
+        li t0,0x200
+        sd t0,_d4(sp)
+        li t0,0x1
+        sd t0,_d7(sp)
+        li t0,0x0
+        sd t0,_d2(sp)
+        li t0,0x0
         sd t0,_d5(sp)
         li t0,0x2
         sd t0,_d8(sp)
