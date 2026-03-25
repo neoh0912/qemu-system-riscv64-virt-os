@@ -1,5 +1,5 @@
 test_blk:
-    save
+    save dn=1
 
     li a0,512
     call malloc
@@ -10,15 +10,30 @@ test_blk:
 
     mv a0,s11
     call print_int_hex
+    call print_newline
 
     li a0,0x0
     call blk_dev_open 
     mv s10,a0
+
+    call blk_dev_get_total_blocks
+    sd a0,_d0(sp)
+    addi a1,sp,_d0
+    la a0,test__blk_sectors_str
+    call printf
+
+    mv a0,s10
+    call blk_dev_get_block_size
+    sd a0,_d0(sp)
+    addi a1,sp,_d0
+    la a0,test__blk_block_size_str
+    call printf
+    call print_newline
+
+    mv a0,s10
     li a1,0 
     mv a2,s11
     call blk_dev_read 
-
-    ebreak
 
     li t0,'N'
     sb t0,0x0(s11)

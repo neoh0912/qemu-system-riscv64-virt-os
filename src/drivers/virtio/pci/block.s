@@ -46,6 +46,7 @@ virtio_pci_blk_read:
 2:
         restore
         ret
+        
 virtio_pci_blk_write:
         save
 
@@ -60,8 +61,31 @@ virtio_pci_blk_write:
         restore
         ret
 virtio_pci_blk_ioctl:
+        save
+
+        li t0,0x0
+        bne a1,t0,1f
+        call virtio_pci_blk_get_total_blocks
+        j 2f
+1:      li t0,0x1
+        bne a1,t0,1f
+        call virtio_pci_blk_get_block_size
+        j 2f
+1:        
+2:
+        restore
         ret
 
+virtio_pci_blk_get_total_blocks:
+        ld a0,DEVICE_INFO(a0)
+        ld a0,BLOCK_COUNT(a0)
+        ret
+
+virtio_pci_blk_get_block_size:
+        ld a0,DEVICE_INFO(a0)
+        ld a0,BLOCK_SIZE(a0)
+        ret
+        
 virtio_pci_blk_read_sector:
 #[ci [ device, sector, buffer ]
 sizeof_virtio_blk_req_header = 0x10
@@ -259,6 +283,8 @@ PLIC_ID = _d1
         ld t1,DEVICE_CONFIG(t0)
         lwu t2,20(t1)
         sd t2,BLOCK_SIZE(a0)
+        ld t2,0(t1)
+        sd t2,BLOCK_COUNT(a0)
 
         ld a0,DEVICE(sp)
         la a1,virtio_pci_blk_read

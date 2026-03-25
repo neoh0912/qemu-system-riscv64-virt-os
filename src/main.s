@@ -27,6 +27,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "data/machine.s"
 .include "data/device_manager.s"
 .include "data/image.s"
+.include "data/tests.s"
 #[yi    [ BSS ]
         .section .bss
         .align 16
