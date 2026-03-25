@@ -160,8 +160,6 @@ Exception_handler:
 External_Interrupt_Handler:
     save_all
 
-    db 'h'
-
     li a0,0x0
     call plic_claim_interrupt
     li t0,0x20

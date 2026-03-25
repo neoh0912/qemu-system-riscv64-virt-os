@@ -13,7 +13,7 @@ device_manager_open_device: #[ci [ device_descriptor ]
         li t2,( sizeof_device_descriptor_table * 0x8 )
         add t2,t2,t0
         mv t4,t0
-        
+
 1:      ld t1,(t0)
         bnez t1,2f
 

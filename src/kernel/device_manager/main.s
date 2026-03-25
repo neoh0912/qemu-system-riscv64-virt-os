@@ -85,16 +85,18 @@ device_manager_get_device_tree:
 device_manager_get_device:
 #[ci [ device_type, id ]
         ld t0,device_manager_device_tree_root
+        
 1:      ld t1,device_tree__device_type(t0)
         beq t1,a0,1f
+
         mv t1,t0
         ld t0,device_tree__next(t1)
         bnez t0,1b
+        
 9:      li a0,0x0
         j 9f
         
 1:      ld t0,device_tree__start(t0)
-
 1:      beqz t0,9b
         
         ld t1,device__id(t0)
@@ -104,7 +106,6 @@ device_manager_get_device:
         j 9f
 
 2:      mv t1,t0
-next = 0x30
         ld t0,device__next(t1)
         j 1b
 

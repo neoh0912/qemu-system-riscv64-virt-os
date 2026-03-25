@@ -55,7 +55,7 @@ virtio_pci_blk_read_sector:
 #[ci [ device, sector, buffer ]
 sizeof_virtio_blk_req_header = 0x10
         save an=3,dn=9
-
+        
         li a0,VIRTIO_BLK_T_IN
         call virtio_blk_create_request
         sd a0,_d0(sp)
@@ -79,16 +79,35 @@ sizeof_virtio_blk_req_header = 0x10
         sd t0,_d8(sp)
         li a2,3
         call virtio_supply_buffer_chain_to_virtqueue
-        break_on_error
         
-        ld t0,_a0(sp)
-        ld t1,NOTIFICATION(t0)
+        slli t0,a0,0x4
+        ld a0,_a0(sp)
+        ld t1,VQUEUE(a0)
+        ld t1,VQ_DESCRIPTOR_TABLE(t1)
+        add t0,t0,t1
+        sd t0,_d0(sp)
+
+        ld a0,_a0(sp)
+        ld t1,NOTIFICATION(a0)
         sh zero,(t1)
         fence w,w
-        
-        wfi        
 
-        restore
+1:      wfi
+
+        ld t0,_d0(sp)
+        ld t1,(t0)
+
+        beqz t1,1f
+        li t2,0x1
+        bne t1,t2,2f
+        ebreak
+2:      li t2,0x2
+        beq t1,t2,2f        
+        j 1b
+
+2:      ebreak
+        
+1:      restore
         ret
 
 
@@ -180,10 +199,69 @@ PLIC_ID = _d1
         ret
 
 virtio_pci_blk_callback:
-        save
+addr = 0x0
+len = 0x8
+flags = 0xc
+next = 0xe
+        save an=2,sn=7
+        mv s1,a0
 
-        db 'd'
+        ld t0,ISR_STATUS(s1)
+        lbu t1,(t0)
+        beqz t1,9f
 
+        ld t0,VQUEUE(s1)
+        ld s2,LAST_SEEN_USED(t0)
+        ld s3,VQ_USED_RING(t0)
+        lhu s3,0x2(t2)
+        lhu s4,VQ_SIZE(t0)
+        ld s5,VQ_DESCRIPTOR_TABLE(t0)
+        
+        
+1:      remu s6,s2,s4
+        slli s6,s6,0x4
+        add s6,s6,s5
+        mv s7,s6
+
+        ld a0,addr(s6)
+        call free
+        sd zero,addr(s6)
+
+        lhu t0,next(s6)
+        remu s6,t0,s4
+        slli s6,s6,0x4
+        add s6,s6,s5
+
+        sd zero,addr(s6)
+
+        lhu t0,next(s6)
+        remu s6,t0,s4
+        slli s6,s6,0x4
+        add s6,s6,s5
+
+        ld a0,addr(s6)
+        lbu t0,(a0)
+        beqz t0,2f
+
+        sd t0,addr(s7)
+        
+2:      call free
+        sd zero,addr(s6)
+
+        addi s2,s2,0x1
+        blt s2,s3,1b
+        
+        ld t0,VQUEUE(s1)
+        sh s2,LAST_SEEN_USED(t0)
+
+        li a0,0x0
+        ld a1,_a1(sp)
+        call plic_complete_interrupt
+        li a0,0x0
+        j 8f
+
+9:      li a0,0x1
+8:
         restore
         ret
 

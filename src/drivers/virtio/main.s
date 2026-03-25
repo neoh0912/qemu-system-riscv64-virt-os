@@ -20,6 +20,7 @@ next = 0xe
 1:      sd a1,addr(t0)
         sd a2,len(t0)
         sd a3,flags(t0)
+        
         sd zero,next(t0)
         li a0,0x0
         mv a1,t3
@@ -42,18 +43,17 @@ virtio_supply_buffer_chain_to_virtqueue:
         ld a2,0x8(a1)
         ld a1,(a1)
         addi s1,s1,0x1
-        li a4,0x0
         ld t0,_a2(sp)
         ld a0,_a0(sp)
         beq s1,t0,2f
         ori a3,a3,0x1
-        li a4,0x1
 2:      call virtio_supply_buffer_to_queue
+        break_on_error
         li t0,0xFFFFFFFF
         bne s2,t0,3f
         mv s2,a1
         j 4f
-3:      sd a1,(s3)
+3:      sh a1,(s3)
 
 4:      mv s3,a2
         ld t0,_a2(sp)
@@ -69,6 +69,8 @@ virtio_supply_buffer_chain_to_virtqueue:
         sh s2,(t2)
         addi t1,t1,0x1
         sh t1,0x2(t0)
+
+        mv a0,s2
 
         restore
         ret
