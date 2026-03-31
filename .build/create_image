@@ -1,2 +1,3 @@
 #!/usr/bin/bash
-qemu-img create -f raw res/hd0.img 256M
+qemu-img create -f raw res/hd0.img 2M
+mkfs.ext2 -vb 1028 res/hd0.img

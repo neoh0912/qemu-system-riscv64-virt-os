@@ -1,3 +1,14 @@
+test_ext2:
+    save
+
+    li a0,0x0
+    call ext2_mount
+
+    ebreak
+    
+    restore
+    ret
+
 test_blk:
     save dn=1
 
@@ -55,3 +66,5 @@ test_blk:
 
     restore
     ret
+
+

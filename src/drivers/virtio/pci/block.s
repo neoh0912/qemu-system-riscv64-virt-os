@@ -90,12 +90,14 @@ virtio_pci_blk_read_sector:
 #[ci [ device, sector, buffer ]
 sizeof_virtio_blk_req_header = 0x10
         save an=3,dn=9
-        
+
+        mv a3,a0
         li a0,VIRTIO_BLK_T_IN
         call virtio_blk_create_request
         sd a0,_d0(sp)
-        sd a1,_d3(sp)
         sd a2,_d6(sp)
+        sd a1,_d3(sp)
+
 #[ci [ virt_queue, requests, num]
         ld a0,_a0(sp)
         ld a0,VQUEUE(a0)
@@ -152,6 +154,7 @@ virtio_pci_blk_write_sector:
 sizeof_virtio_blk_req_header = 0x10
         save an=3,dn=9
         
+        mv a3,a0
         li a0,VIRTIO_BLK_T_OUT
         call virtio_blk_create_request
         sd a0,_d0(sp)
@@ -211,12 +214,12 @@ sizeof_virtio_blk_req_header = 0x10
 
 
 virtio_blk_create_request:
-#[ci [ type, sector, data ]
+#[ci [ type, sector, data, device ]
 sizeof_virtio_blk_req_header = 0x10
 type = 0x0
 sector = 0x8
 data = 0x10
-        save an=3
+        save an=4
         li a0,sizeof_virtio_blk_req_header
         call malloc
         li a2,sizeof_virtio_blk_req_header
@@ -224,7 +227,16 @@ data = 0x10
         call memset
         ld t0,_a0(sp)
         sw t0,type(a0)
+        
         ld t0,_a1(sp)
+        
+        ld t1,_a3(sp)
+        ld t1,DEVICE_INFO(t1)
+        ld t1,BLOCK_SIZE(t1)
+        li t2,0x200
+        divu t1,t1,t2
+        mul t0,t0,t1
+
         sd t0,sector(a0)
         sd a0,_a0(sp)
         li a0,1

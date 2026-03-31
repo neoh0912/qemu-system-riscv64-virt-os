@@ -35,6 +35,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "bss/uart.s"
 .include "bss/bios.s"
 .include "bss/device_manager.s"
+.include "bss/filesystem.s"
         .align 16
 .include "bss/stack.s"
         .align 16
@@ -75,6 +76,9 @@ HEX: .ascii "0123456789ABCDEF"
 .include "kernel/device_manager/display.s"
 .include "kernel/device_manager/keyboard.s"
 .include "kernel/device_manager/blk_dev.s"
+
+.include "kernel/filesystem/ext2/mount.s"
+.include "kernel/filesystem/mount.s"
         .section .text.memory
 .include "memory/memcpy.s"
 .include "memory/heap.s"

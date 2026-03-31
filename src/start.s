@@ -18,8 +18,7 @@ _start:
 
     call virtio_pci_keyboard_init
     call virtio_pci_blk_init
-    call bochs_init
-    
+    call bochs_init    
 
     la a0,pci_scan
     call device_manager_register_device_scanner
@@ -28,11 +27,8 @@ _start:
 
     call device_manager_print_devices
 
-    call test_blk
+    call test_ext2
 
-    li a0,0x0
-    call keyboard_open
-    break_on_error
-    mv s11,a0
-    
-    j bounce
+1:
+    wfi
+j 1b
