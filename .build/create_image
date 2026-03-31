@@ -1,3 +1,8 @@
 #!/usr/bin/bash
 qemu-img create -f raw res/hd0.img 2M
 mkfs.ext2 -vb 1028 res/hd0.img
+mkdir build/tmp
+sudo mount -o loop res/hd0.img build/tmp
+sudo cp res/filesystem/* build/tmp/
+sudo umount build/tmp
+rm -fr build/tmp/*
