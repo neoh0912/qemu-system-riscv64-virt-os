@@ -50,7 +50,20 @@ out = _d1
 
         sd t2,fs_mount__block_size(t0)
 
-# allocate inode and block cache
+        call fs_alloc_block_cache
+        bnez a0,1f
+        ebreak
+        
+1:      ld t0,fs_mount(sp)
+        sd a0,fs_mount__block_cache(t0)
+
+#        call fs_alloc_inode_cache
+#        bnez a0,1f
+#        ebreak
+#        
+#1:      ld t0,fs_mount(sp)
+#        sd a0,fs_mount__inode_cache(t0)
+
 
         ld a0,out(sp)
         
