@@ -12,7 +12,10 @@ ext2_get_inode:
         remu s2,t2,t1
         addi s1,s1,0x2
 
-        
+        ld a0,_a0(sp)
+        mv a1,s1
+        call ext2_read
+        call print_int_hex
         
         
 

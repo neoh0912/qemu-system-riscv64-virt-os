@@ -65,7 +65,8 @@ out = _d1
 #        sd a0,fs_mount__inode_cache(t0)
 
 
-        ld a0,out(sp)
+        ld a0,fs_mount(sp)
+        ld a1,out(sp)
         
         restore
         ret 

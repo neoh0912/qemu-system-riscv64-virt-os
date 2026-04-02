@@ -41,11 +41,14 @@ test_rrip:
 
 
 test_ext2:
-    save
+    save sn=1
 
     li a0,0x0
     call ext2_mount
-
+    mv s1,a0
+    li a1,0x1
+    call ext2_get_inode
+    
     ebreak
     
     restore

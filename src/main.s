@@ -77,8 +77,13 @@ HEX: .ascii "0123456789ABCDEF"
 .include "kernel/device_manager/keyboard.s"
 .include "kernel/device_manager/blk_dev.s"
 
-.include "kernel/filesystem/ext2/mount.s"
+
 .include "kernel/filesystem/mount.s"
+
+.include "kernel/filesystem/ext2/mount.s"
+.include "kernel/filesystem/ext2/inode.s"
+.include "kernel/filesystem/ext2/read.s"
+
         .section .text.memory
 .include "memory/memcpy.s"
 .include "memory/heap.s"

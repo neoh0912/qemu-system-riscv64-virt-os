@@ -1,4 +1,4 @@
-.include "cosnt/fs/mount.s"
+.include "const/fs/mount.s"
 .include "const/fs/block_cache.s"
 ext2_read:
 #[ci [ mount, block ]
