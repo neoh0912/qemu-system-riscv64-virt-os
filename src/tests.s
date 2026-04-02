@@ -1,3 +1,45 @@
+.macro test_rrip_read tag
+    mv a0,s1
+    li a1,(\tag)
+    call rrip_get
+    beqz a1,1f
+    db 'h'
+    j 2f
+    
+1:  db 'm'
+    li a1,(\tag)
+    li a2,0xFACE
+    call rrip_set
+2:
+.endm    
+
+
+test_rrip:
+    save sn=1
+
+    li a0,0x4
+    call rrip_create
+    mv s1,a0
+
+    test_rrip_read 0
+    test_rrip_read 1
+    test_rrip_read 1
+    test_rrip_read 0
+    test_rrip_read 2
+    test_rrip_read 3
+    test_rrip_read 4
+    test_rrip_read 5
+    test_rrip_read 0
+    test_rrip_read 1
+    
+    call print_newline
+    mv a0,s1
+    call free
+   
+    restore
+    ret
+
+
 test_ext2:
     save
 

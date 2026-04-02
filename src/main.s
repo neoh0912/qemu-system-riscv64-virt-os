@@ -85,6 +85,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "memory/kernel.s"
 .include "memory/memset.s"
 .include "memory/align.s"
+.include "memory/rrip.s"
         .section .text.machine
 .include "machine.s"
         .section .text.bios
