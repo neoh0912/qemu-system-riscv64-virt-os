@@ -46,7 +46,7 @@ rrip_create:
         restore
         ret
 
-rrip_get:
+rrip_find:
 #[ci [ cache, tag ] -> address, is_hit
         save an=2
 
@@ -56,8 +56,7 @@ rrip_get:
 1:      ld t2,(rrip_cache__cache + rrip_cache_e__tag)(a0)
         bne t2,a1,2f
 
-        sb zero,(rrip_cache__cache + rrip_cache_e__rrpv)(a0)
-        ld a0,(rrip_cache__cache + rrip_cache_e__value)(a0)
+        addi a0,a0,rrip_cache__cache
         li a1,0x1
         j 9f
         
@@ -109,25 +108,32 @@ rrip_set:
         restore
         ret
 
+rrip_get:
+#[ci [ cache, tag ] -> value, is_hit
+        save an=2
+
+        call rrip_find
+        beqz a1,9f
+        
+        sb zero,rrip_cache_e__rrpv(a0)
+        ld a0,rrip_cache_e__value(a0)
+
+9:      restore
+        ret
+
+rrip_invisable_get:
+#[ci [ address ] -> value
+        ld a0,rrip_cache_e__value(a0)
+        ret
+
 rrip_get_rrpv:
 #[ci [ cache, tag ] -> rrpv, hit 
         save an=2
 
-        ld t1,rrip_cache__size(a0)
-        li t0,0x0
-
-1:      ld t2,(rrip_cache__cache + rrip_cache_e__tag)(a0)
-        bne t2,a1,2f
-
-        lbu a0,(rrip_cache__cache + rrip_cache_e__rrpv)(a0)
-        li a1,0x1
-        j 9f
+        call rrip_find
+        beqz a1,9f
         
-2:      addi t0,t0,0x1
-        addi a0,a0,sizeof_RRIP_CACHE_ELEMENT
-        blt t0,t1,1b
-
-        li a1,0x0
+        lbu a0,rrip_cache_e__rrpv(a0)
 
 9:      restore
         ret
