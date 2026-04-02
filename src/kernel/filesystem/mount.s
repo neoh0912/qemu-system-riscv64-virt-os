@@ -48,7 +48,7 @@ fs_alloc_block_cache:
 2:      li t0,sizeof_block_cache
         mul t0,s2,t0
         add t0,t0,s1
-        sd a0,block_cache__(t0)
+#        sd a0,block_cache__(t0)
 
         addi s2,s2,0x1
         blt s2,s3,1b        

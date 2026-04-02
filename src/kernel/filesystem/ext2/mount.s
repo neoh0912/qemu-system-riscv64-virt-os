@@ -46,7 +46,7 @@ out = _d1
 
         lwu t2,s_log_block_size(t1)
         li t3,0x400
-        slli t2,t3,t2
+        sll t2,t3,t2
 
         sd t2,fs_mount__block_size(t0)
 
