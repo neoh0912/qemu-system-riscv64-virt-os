@@ -11,13 +11,20 @@ ext2_get_inode:
         divu s1,t2,t1
         remu s2,t2,t1
         addi s1,s1,0x2
+        li t0,128
+        mul s2,s2,t0
 
         ld a0,_a0(sp)
         mv a1,s1
+        ebreak
         call ext2_read
+
+        lwu a1,bg_inode_table(a0)
+        ld a0,_a0(sp)
+        ebreak
+        call ext2_read
+        add a0,a0,s2
         call print_int_hex
-        
-        
 
         restore
         ret

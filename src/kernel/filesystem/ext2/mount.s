@@ -17,6 +17,9 @@ out = _d1
         li t0,1
         sw t0,fs_mount__valid_flag(a0)
 
+        li t0,0x2
+        sd t0,fs_mount__root_inode(a0)
+
         li t0,FS_MOUNT_EXT2
         sw t0,fs_mount__fs_type(a0)
 
