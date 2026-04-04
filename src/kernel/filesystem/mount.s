@@ -22,6 +22,11 @@ fs_mount_alloc:
         restore
         ret
 
+fs_mount_get_root_inode:
+#[ci [ mount ]
+        ld a0,fs_mount__root_inode(a0)
+        ret
+
 fs_alloc_block_cache:
 #[ci [ mount ]
         save an=1,sn=3

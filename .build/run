@@ -1,21 +1,36 @@
 #!/usr/bin/bash
 
+suffix=""
 
-qemu-system-riscv64 \
--bios build/bin \
--M virt \
--m 512M \
--device bochs-display \
--device virtio-keyboard-pci \
--drive file=res/hd0.img,if=none,format=raw,id=hd0 \
--device virtio-blk-pci-non-transitional,drive=hd0,logical_block_size=1024,physical_block_size=1024 \
--serial unix:/tmp/qemu-serial.sock,server,nowait \
--monitor unix:/tmp/qemu-monitor.sock,server,nowait &
+if [[ $NOTMUX == 0 ]]; then
+
+    qemu-system-riscv64 \
+    -bios build/bin \
+    -M virt \
+    -m 512M \
+    -device VGA \
+    -device virtio-keyboard-pci \
+    -drive file=res/hd0.img,if=none,format=raw,id=hd0 \
+    -device virtio-blk-pci-non-transitional,drive=hd0,logical_block_size=1024,physical_block_size=1024 \
+    -serial unix:/tmp/qemu-serial.sock,server,nowait -monitor unix:/tmp/qemu-monitor.sock,server,nowait &
+
+    while [ ! -S /tmp/qemu-serial.sock ]; do
+      sleep 0.1
+    done
+
+    exec tmux new-session "socat STDIO,raw,echo=0 UNIX-CONNECT:/tmp/qemu-serial.sock" \; \
+         split-window -h "socat STDIO UNIX-CONNECT:/tmp/qemu-monitor.sock" \; &
+else
+    qemu-system-riscv64 \
+    -bios build/bin \
+    -M virt \
+    -m 512M \
+    -device VGA \
+    -device virtio-keyboard-pci \
+    -drive file=res/hd0.img,if=none,format=raw,id=hd0 \
+    -device virtio-blk-pci-non-transitional,drive=hd0,logical_block_size=1024,physical_block_size=1024
+fi
 
 
-while [ ! -S /tmp/qemu-serial.sock ]; do
-  sleep 0.1
-done
 
-exec tmux new-session "socat STDIO,raw,echo=0 UNIX-CONNECT:/tmp/qemu-serial.sock" \; \
-     split-window -h "socat STDIO UNIX-CONNECT:/tmp/qemu-monitor.sock" \; \
+##     -device bochs-display \

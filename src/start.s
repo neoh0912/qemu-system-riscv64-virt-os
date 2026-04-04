@@ -18,6 +18,7 @@ _start:
 
     call virtio_pci_keyboard_init
     call virtio_pci_blk_init
+    call vga_init
     call bochs_init    
 
     la a0,pci_scan
@@ -27,7 +28,9 @@ _start:
 
     call device_manager_print_devices
 
-    call test_ext2
+#    call test_ext2
+
+    call bounce
 
 1:
     wfi

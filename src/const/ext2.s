@@ -24,6 +24,18 @@ s_rev_level = 76
 s_def_resuid = 80		
 s_def_resgid = 82		
 
+s_first_ino = 84	
+s_inode_size = 88	
+s_block_group_nr = 90	
+s_feature_compat = 92	
+s_feature_incompat = 96	
+s_feature_ro_compat = 100	
+s_uuid = 104	
+s_volume_name = 120	
+s_last_mounted = 136	
+s_algo_bitmap = 200	
+
+
 bg_block_bitmap = 0	
 bg_inode_bitmap = 4	
 bg_inode_table = 8	
