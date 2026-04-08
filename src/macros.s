@@ -97,7 +97,7 @@ restore_count = 1
         sd   ra,  -8(sp)
         sd   fp, -16(sp)
         mv   fp, sp
-        addi sp,sp,-( (((2+(\an)+(\sn)+(\dn))*2+(\wn))*2+(\hn))*2+(\bn) )
+        addi sp,sp,-(0x10+(\an)*8+(\sn)*8+(\dn)*8+(\wn)*4+(\hn)*2+(\bn))
         
         save_count = save_count+1
 

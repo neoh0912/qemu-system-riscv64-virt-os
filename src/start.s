@@ -30,7 +30,9 @@ _start:
 
 #    call test_ext2
 
-    call bounce
+#   call test_char_display
+
+    call test_font
 
 1:
     wfi

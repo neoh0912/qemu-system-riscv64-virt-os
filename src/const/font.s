@@ -1,0 +1,28 @@
+sizeof_FONT = (0x4+0x4)+(0x4+0x4)+0x8+(0x4+0x8)+(0x8+0x8)
+
+FONT__w = 0x0
+FONT__h = 0x4
+FONT__size = 0x8
+FONT__length = 0xC
+
+FONT__glyphs = 0x10
+
+FONT__utf8_map_size = 0x18
+FONT__utf8_map = 0x1C
+
+FONT__get_glyph = 0x20
+FONT__render_glyph = 0x28
+
+sizeof_UTF8MAP = 0x4+0x2
+
+UTF8MAP__utf8 = 0x0
+UTF8MAP__glyph = 0x4
+
+PSF_FONT_HEADER__Magic_bytes = 0x0
+PSF_FONT_HEADER__version = 0x4
+PSF_FONT_HEADER__Header_Size = 0x8
+PSF_FONT_HEADER__Flags = 0xC
+PSF_FONT_HEADER__Length = 0x10
+PSF_FONT_HEADER__Glyph_size = 0x14
+PSF_FONT_HEADER__Height = 0x18
+PSF_FONT_HEADER__Width = 0x1C

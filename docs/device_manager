@@ -42,8 +42,10 @@ display
     void read()
         not implemented
     void write(device: *device_object, operation: char)
-        '\0' = write buffer
+        '\0' = write frame buffer
             void write(...,buffer words[])
+        '\1' = write buffer
+            void write(...,buffer,x,y,n)
         's' = write sprite
             void write(...,surface: int32[], x,y,w,h)
                 sizeof(sprite)*w by sizeof(sprite)*h
@@ -52,6 +54,8 @@ display
             qword qword ioctl(...)
         '\1' set resolution
             void ioctl(...,x,y)
+        '\2' get frame_buffer
+            qword ioctl(...)
 
 blkdrive
     void read(device: *device_object, operation: char)

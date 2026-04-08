@@ -11,6 +11,31 @@ display_close:
  #[ci [ descriptor ]
         tail device_manager_close_device
 
+display_get_frame_buffer:
+ #[ci [ descriptor ]
+        save
+        device_manager_get_device_of_dd
+
+        bnez a0,1f
+        li a0,-ENODEV
+        j 9f
+
+        
+1:      ld t0,device__device_type(a0)
+        li t1,display
+        beq t0,t1,1f
+        li a0,-ENOTTY
+        j 9f
+
+        
+1:      ld t0,device__ioctl(a0)
+        ld a0,device__device(a0)
+        li a1,0x2
+        jalr ra,t0,0x0
+        
+9:      restore
+        ret    
+
 display_set_resolution:
 #[ci [ device_descriptor, res_x, res_y ]
         save an=3
@@ -66,7 +91,7 @@ display_get_resolution:
         ret    
 
 
-display_write_buffer:
+display_write_frame_buffer:
 #[ci [ device_descriptor, buffer: *void ]
         save an=2
 _buffer = _a1
@@ -90,6 +115,34 @@ _buffer = _a1
         
 9:      restore
         ret    
+
+display_write_buffer:
+#[ci [ device_descriptor, buffer, x,y,n ]
+        save an=5
+_buffer = _a1
+
+        device_manager_get_device_of_dd
+        bnez a0,1f
+        li a0,-ENODEV
+        j 9f
+        
+1:      ld t0,device__device_type(a0)
+        li t1,display
+        beq t0,t1,1f
+        li a0,-ENOTTY
+        j 9f
+
+1:      ld t0,device__write(a0)
+        ld a0,device__device(a0)
+        li a1,0x1
+        ld a2,_buffer(sp)
+        ld a3,_a2(sp)
+        ld a4,_a3(sp)
+        ld a5,_a4(sp)
+        jalr ra,t0,0x0
+        
+9:      restore
+        ret
 
 display_write_sprite:
 #[ci [ device_descriptor, surface: *void, x,y,w,h]

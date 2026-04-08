@@ -1,3 +1,47 @@
+.include "const/font.s"
+
+test_font:
+        save
+
+        la a0,VGA_FONT_DATA
+        call font_load
+
+        ebreak
+
+        restore
+        ret
+
+
+#test_char_display:
+#        save sn=2
+#
+#        li a0,0x0
+#        call char_display_create
+#        mv s1,a0
+#        la a0,VGA_FONT_DATA
+#        li a1,FONT_PSF
+#        li a2,0x8
+#        li a3,0x10
+#        call graphics_font_load
+#        bnez a0,1f
+#        ebreak
+#
+#1:      mv a1,a0
+#        mv a0,s1
+#        li a2,80
+#        li a3,30
+#        call char_display_init
+#        
+#        mv a0,s1
+#        la a1,test__test_string
+#        li a2,0xFFFF
+#        call char_display_write
+#
+#        ebreak
+#
+#        restore
+#        ret
+
 .macro test_rrip_read tag
     mv a0,s1
     li a1,(\tag)

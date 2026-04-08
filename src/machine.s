@@ -136,11 +136,11 @@ Exception_handler:
     call machine_print_heap
     call print_newline
 
-    la a0,machine_fault_stack_str
-    call print_string
-
-    mv a0,sp
-    call machine_print_stack
+#    la a0,machine_fault_stack_str
+#    call print_string
+#
+#    mv a0,sp
+#    call machine_print_stack
 
 
     csrr t0,mepc

@@ -20,6 +20,9 @@ bochs_init_device:
         sd a0,(sp)    
         call vga_boch_init
         ld a0,(sp)
+
+        
+        
         la a1,bochs_read
         la a2,bochs_write
         la a3,bochs_ioctl
@@ -62,8 +65,18 @@ bochs_ioctl:
         mv a2,a3
         call bochs_set_resolution
         j 9f
-1:        
+        
+1:      li t0,0x2
+        bne a1,t0,1f
+        call bochs_get_frame_buffer
+        j 9f
+1:      
 9:      restore
+        ret
+
+bochs_get_frame_buffer:
+#[ci [ device ]
+        ld a0,device__fb(a0)
         ret
 
 bochs_set_resolution:

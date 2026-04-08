@@ -8,7 +8,7 @@ if [[ $NOTMUX == 0 ]]; then
     -bios build/bin \
     -M virt \
     -m 512M \
-    -device VGA \
+    -device bochs-display \
     -device virtio-keyboard-pci \
     -drive file=res/hd0.img,if=none,format=raw,id=hd0 \
     -device virtio-blk-pci-non-transitional,drive=hd0,logical_block_size=1024,physical_block_size=1024 \
@@ -25,7 +25,7 @@ else
     -bios build/bin \
     -M virt \
     -m 512M \
-    -device VGA \
+    -device bochs-display \
     -device virtio-keyboard-pci \
     -drive file=res/hd0.img,if=none,format=raw,id=hd0 \
     -device virtio-blk-pci-non-transitional,drive=hd0,logical_block_size=1024,physical_block_size=1024

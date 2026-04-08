@@ -23,18 +23,18 @@ mtime_64hz = mtime_frec >> 6
 str: .string "NEOH"
 hex: .ascii "0123456789abcdef"
 HEX: .ascii "0123456789ABCDEF"
-.include "data/bios.s"
 .include "data/machine.s"
 .include "data/device_manager.s"
 .include "data/image.s"
 .include "data/vga.s"
+.include "data/char_display.s"
 .include "data/tests.s"
+
 #[yi    [ BSS ]
         .section .bss
         .align 16
 .include "bss/pci.s"
 .include "bss/uart.s"
-.include "bss/bios.s"
 .include "bss/device_manager.s"
 .include "bss/filesystem.s"
         .align 16
@@ -85,6 +85,8 @@ HEX: .ascii "0123456789ABCDEF"
 .include "kernel/filesystem/ext2/inode.s"
 .include "kernel/filesystem/ext2/read.s"
 
+.include "kernel/char_display/font.s"
+
         .section .text.memory
 .include "memory/memcpy.s"
 .include "memory/heap.s"
@@ -92,10 +94,12 @@ HEX: .ascii "0123456789ABCDEF"
 .include "memory/memset.s"
 .include "memory/align.s"
 .include "memory/rrip.s"
+.include "memory/strcpy.s"
         .section .text.machine
 .include "machine.s"
         .section .text.bios
-.include "bios.s"
+#.include "bios/graphics/char_display/main.s"
+#.include "bios/graphics/char_display/terminal.s"
         .section .text.programs
 .include "programs/bounce.s"
 .include "tests.s"
