@@ -28,6 +28,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "data/image.s"
 .include "data/vga.s"
 .include "data/char_display.s"
+.include "data/terminal.s"
 .include "data/tests.s"
 
 #[yi    [ BSS ]
@@ -85,7 +86,10 @@ HEX: .ascii "0123456789ABCDEF"
 .include "kernel/filesystem/ext2/inode.s"
 .include "kernel/filesystem/ext2/read.s"
 
+.include "kernel/char_display/main.s"
 .include "kernel/char_display/font.s"
+
+.include "kernel/char_display/terminal.s"
 
         .section .text.memory
 .include "memory/memcpy.s"
@@ -98,7 +102,6 @@ HEX: .ascii "0123456789ABCDEF"
         .section .text.machine
 .include "machine.s"
         .section .text.bios
-#.include "bios/graphics/char_display/main.s"
 #.include "bios/graphics/char_display/terminal.s"
         .section .text.programs
 .include "programs/bounce.s"

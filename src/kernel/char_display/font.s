@@ -96,7 +96,7 @@ _fg = 0x22
 _bg = 0x26
         save an=2,sn=11
 
-        ld t0,FONT__size(a0)
+        lwu t0,FONT__size(a0)
         lhu t1,_glyph(a1)
         mul t1,t1,t0
         ld t0,FONT__glyphs(a0)
@@ -117,7 +117,7 @@ _bg = 0x26
         lwu s7,FONT__w(a0)
         lwu s9,_fg(a1)
         lwu s10,_bg(a1)
-        
+
 1:      li s6,0x0
 
         mv t0,s2
@@ -129,7 +129,7 @@ _bg = 0x26
         lbu s8,(s1)
         addi s1,s1,0x1
         
-3:      ori t1,s8,0x80
+3:      andi t1,s8,0x80
         slli s8,s8,0x1
         beqz t1,3f
         

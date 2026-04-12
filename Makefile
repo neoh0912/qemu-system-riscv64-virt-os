@@ -1,5 +1,5 @@
 TCPREFIX = riscv64-unknown-elf-
-ISA = rv64im_zicsr_zbb
+ISA = rv64im_zicsr_zbb_zbs
 ABI = lp64
 
 VPATH = src:res

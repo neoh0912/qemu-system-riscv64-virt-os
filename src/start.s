@@ -30,9 +30,9 @@ _start:
 
 #    call test_ext2
 
-#   call test_char_display
+    call test_char_display
 
-    call test_font
+#    call test_font
 
 1:
     wfi
