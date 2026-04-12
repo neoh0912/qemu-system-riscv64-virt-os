@@ -44,8 +44,11 @@ font_load:
         ld t0,FONT__utf8_map(a0)
         beqz t0,1f
 
-        
         call font_sort_utf8_table
+        mv a0,s1
+        li a1,' '
+        call font_get_glyph
+        sh a0,FONT__space(s1)        
 
 1:      mv a0,s1
 
@@ -86,14 +89,13 @@ font_get_glyph:
         ret
 
 font_write_glyph:
-#[ci [ Font font, void* args] args = ( glyph, buffer, w,x,y,fg,bg )
+#[ci [ Font font, void* args] args = ( glyph, buffer, w,offset,fg,bg )
 _glyph = 0x0
 _buffer = 0x2
 _w = 0xA
-_x = 0x12
-_y = 0x1A
-_fg = 0x22
-_bg = 0x26
+_offset = 0x12
+_fg = 0x1A
+_bg = 0x1E
         save an=2,sn=11
 
         lwu t0,FONT__size(a0)
@@ -102,12 +104,19 @@ _bg = 0x26
         ld t0,FONT__glyphs(a0)
         add s1,t0,t1 # glyph
 
-        lwu t0,_y(a1)
-        lwu s11,_w(a1)
-        mul t0,t0,s11
-        lwu t1,_x(a1)
-        slli t1,t1,0x2
+        ld s11,_w(a1)
+        
+        ld t0,_offset(a1)
+        slli t0,t0,0x2
+
+        addi t3,s11,0x0
+        divu t1,t0,t3
+        lwu t2,FONT__h(a0)
+        mul t1,t1,t2
+        mul t1,t1,t3
+        remu t0,t0,t3
         add t0,t0,t1
+        
         ld t1,_buffer(a1)
         add s2,t0,t1 # buffer[offset]
 

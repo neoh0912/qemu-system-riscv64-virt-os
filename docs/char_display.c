@@ -11,20 +11,22 @@ struct CHAR_DISPLAY {
 
     STATE state;
 
+    PARSER parser;
+
 };
 
 struct STATE {
 
     struct {
         WORD x,y;
+        struct {
+            inverse;
+            invisable;
+        } style;
     } cursor;
 
     WORD fg,bg;
     BYTE tab_size;
-
-    struct {
-        HALFWORD video;
-    } ansi;
 
 };
 
@@ -61,18 +63,35 @@ CHAR_DISPLAY char_display_create(DWORD device_id,FONT font,WORD w,h) {
 }
 
 void char_display_flush(CHAR_DISPLAY char_display) {
-    w,_ = display_get_resolution(char_display->device_handle);
-    w *= sizeof(WORD);
+    HALFWORD* glyph = char_display->glyph_buffer;
+    WORD* fg        = char_display->fg_buffer;
+    WORD* bg        = char_display->bg_buffer;
 
-    buffer = display_get_frame_buffer(char_display->device_handle);
-    font = char_display->font
+    const FONT font = char_display->font;
 
-    for (y=0;y<char_display->h; y++) {
-        for (x=0;x<char_display->w; x++) {
-            
+    const DWORD w = display_get_resolution(char_display->device_handle)*sizeof(WORD);
+    const void* buffer = display_get_frame_buffer(char_display->device_handle);
+
+
+    ARGS args = ARGS{};
+
+    args->w = w;
+    args->buffer = buffer;
+
+    DWORD y=0;
+    while ( y < char_display->h*font->h ) {
+        DWORD x=0;
+        args->y = y;
+        while ( x < char_display->w*font->w ) {
+            args->x = x;
+            args->glyph = *glyph++;
+            args->fg = *fg++;
+            args->bg = *bg++;
+            font_write_glyph(font,args)
+
+            x += font->w
         }
+        y += font->h
     }
-
-
 
 }

@@ -33,6 +33,10 @@ char_display_create:
 
         call display_set_resolution
 
+        mv a0,s1
+
+        call char_display_update_cursor_absolute_position
+
         ld t0,_a1(sp)
         sd t0,CHAR_DISPLAY__font(s1)
 
@@ -41,6 +45,11 @@ char_display_create:
         li t0,CHAR_DISPLAY_DEFAULT_BG
         sw t0,CHAR_DISPLAY__state__bg(s1)
 
+        li t0,(1<<ANSI_MODE__line_feed)
+        sb t0,CHAR_DISPLAY__state__ansi_mode(s1)
+        li t0,(1<<PRIVATE_MODE__text_cursor_enable)
+        sb t0,CHAR_DISPLAY__state__private_mode(s1)
+        
         li t0,0x4
         sb t0,CHAR_DISPLAY__state__tab_size(s1)
 
@@ -95,6 +104,24 @@ char_display_create:
         mv a2,s2
         call memset
 
+        li t0,0x8
+        remu t0,s2,t0
+        sub s2,s2,t0
+        srli s2,s2,0x3
+        beqz t0,1f
+        addi s2,s2,0x1
+1:      mv a0,s2
+        call malloc
+        bnez a0,1f
+        ebreak
+
+1:      sd a0,CHAR_DISPLAY__buffer_mask(s1)
+        li a1,0x0
+        mv a2,s2
+        call memset
+
+        sh s2,CHAR_DISPLAY__sizeof_buffer_mask(s1)
+
         mv a0,s1
 
         restore
@@ -102,81 +129,97 @@ char_display_create:
 
 char_display_flush:
 #[ci [ char_display ]
-        save an=1,sn=11,bn=42
+        save an=1,sn=11,bn=42,dn=2
 _args = _b0
 _glyph = _args + 0x0
-_buffer = _glyph + 0x2
-_w = _buffer + 0x8
-_x = _w + 0x8
-_y = _x + 0x8
-_fg = _y + 0x8
-_bg = _fg + 0x4
+_buffer = _args + 0x2
+_w = _args + 0xA
+_offset = _args + 0x12
+_fg = _args + 0x1A
+_bg = _args + 0x1E
 
-        ld s7,CHAR_DISPLAY__glyph_buffer(a0)
-        ld s8,CHAR_DISPLAY__fg_buffer(a0)
-        ld s9,CHAR_DISPLAY__bg_buffer(a0)
-        ld s11,CHAR_DISPLAY__attribute_buffer(a0)
 
-        ld s10,CHAR_DISPLAY__font(a0)
+        ld s5,CHAR_DISPLAY__glyph_buffer(a0)
+        ld s6,CHAR_DISPLAY__fg_buffer(a0)
+        ld s7,CHAR_DISPLAY__bg_buffer(a0)
+        ld s8,CHAR_DISPLAY__attribute_buffer(a0)
 
-        lwu s2,CHAR_DISPLAY__h(a0)
-        lwu s5,CHAR_DISPLAY__w(a0)
-        
+        ld s2,CHAR_DISPLAY__buffer_mask(a0)
+        ld s3,CHAR_DISPLAY__font(a0)
+
+        lwu t0,CHAR_DISPLAY__w(a0)
+        lwu t1,CHAR_DISPLAY__h(a0)
+        mul s10,t0,t1
+
+
+        lwu t0,FONT__w(s3)
+        mul s9,s10,t0
+
+        lwu s11,FONT__w(s3)
+        lwu t0,CHAR_DISPLAY__w(a0)
+        mul t0,t0,s11
+        lbu t1,CHAR_DISPLAY__state__scroll(a0)
+        mul t0,t0,t1
+        sd t0,_offset(sp)
+
+
         ld s1,CHAR_DISPLAY__device_handle(a0)
         mv a0,s1
         call display_get_resolution
-        slli a0,a0,0x2
-        sd a0,_w(sp)
+        slli t0,a0,0x2
+        sd t0,_w(sp)
+        
         mv a0,s1
         call display_get_frame_buffer
         sd a0,_buffer(sp)
 
-        lwu s3,FONT__h(s10)
-        mul s2,s2,s3
-        lwu s6,FONT__w(s10)
-        mul s5,s5,s6
+        mv a0,s3
 
         li s1,0x0
-
-1:      bge s1,s2,1f
         li s4,0x0
-        sd s1,_y(sp)
+1:      lbu s3,(s2)
+        sb zero,(s2)
+        addi s2,s2,0x1
+3:      andi t0,s3,0x1
+        srli s3,s3,0x1
+        beqz t0,2f
 
-2:      bge s4,s5,2f
+        ld t1,_offset(sp)
+        mul t0,s4,s11
+        add t1,t1,t0
+        mv s4,zero
+        remu t1,t1,s9
+        sd t1,_offset(sp)
 
-        sd s4,_x(sp)
-
-        lhu t0,(s7)
-        addi s7,s7,0x2
+        lhu t0,(s5)
         sh t0,_glyph(sp)
 
-        lhu t2,(s11)
-        addi s11,s11,0x1
-        
-        lwu t0,(s8)
-        lwu t1,(s9)
-        addi s8,s8,0x4
-        addi s9,s9,0x4
-
-        andi t3,t2,(CURSOR_FLAG)
-        beqz t3,3f
+        lwu t1,(s6)
+        lwu t2,(s7)
+        lbu t0,(s8)
+        andi t0,t0,CURSOR_FLAG
+        bnez t0,6f
 
         sw t1,_fg(sp)
-        sw t0,_bg(sp)
-        j 4f
-
-3:      sw t0,_fg(sp)
-        sw t1,_bg(sp)
-4:
-        mv a0,s10
-        addi a1,sp,_args
+        sw t2,_bg(sp)
+        j 7f
+6:      sw t1,_bg(sp)
+        sw t2,_fg(sp)
+7:      addi a1,sp,_args
         call font_write_glyph
 
-        add s4,s4,s6
-        j 2b
-
-2:      add s1,s1,s3
+2:      addi s1,s1,1
+        addi s5,s5,0x2
+        addi s6,s6,0x4
+        addi s7,s7,0x4
+        addi s8,s8,0x1
+        addi s4,s4,0x1
+        bge s1,s10,1f
+        andi t0,s1,0x7
+        bnez t0,3b
         j 1b
+
+
 
 1:      restore
         ret

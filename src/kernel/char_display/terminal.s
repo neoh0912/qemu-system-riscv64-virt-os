@@ -4,6 +4,8 @@ char_display_write:
 
         call char_display_remove_cursor
 
+        ld a1,_a1(sp)
+
         li s1,0x0
         mv s2,a2
         mv s3,a1
@@ -57,6 +59,7 @@ char_display_write:
 
 2:      addi a0,a0,CHAR_DISPLAY__parser
         mv a1,s5
+
         call char_display_parser_next
 
         mv s6,a1
@@ -80,15 +83,37 @@ char_display_write:
 9:      restore
         ret
 
+char_display_mark_cell_dirty:
+#[ci [ self, index ]
+        li t0,0x8
+        remu t1,a1,t0
+        divu t0,a1,t0
+
+        ld t2,CHAR_DISPLAY__buffer_mask(a0)
+        add t0,t0,t2
+        lbu t2,(t0)
+        bset t2,t2,t1
+        sb t2,(t0)
+        ret
+
 char_display_remove_cursor:
 #[ci [ self ]
         save
 
-        lwu t0,CHAR_DISPLAY__state__cursor__y(a0)
+        lbu t0,CHAR_DISPLAY__state__private_mode(a0)
+        bexti t0,t0,PRIVATE_MODE__text_cursor_enable
+        beqz t0,1f
+
+        call char_display_update_cursor_absolute_position
+        lwu t0,CHAR_DISPLAY__state__cursor__absolute_y(a0)
         lwu t1,CHAR_DISPLAY__w(a0)
         mul t0,t0,t1
         lwu t1,CHAR_DISPLAY__state__cursor__x(a0)
         add t0,t0,t1
+
+        mv a1,t0
+        call char_display_mark_cell_dirty
+        mv t0,a1
 
         ld t1,CHAR_DISPLAY__attribute_buffer(a0)
         add t0,t0,t1
@@ -99,18 +124,27 @@ char_display_remove_cursor:
         andn t1,t1,t2
         sb t1,(t0)
         
-        restore
+1:      restore
         ret
 
 char_display_add_cursor:
 #[ci [ self ]
         save
 
-        lwu t0,CHAR_DISPLAY__state__cursor__y(a0)
+        lbu t0,CHAR_DISPLAY__state__private_mode(a0)
+        bexti t0,t0,PRIVATE_MODE__text_cursor_enable
+        beqz t0,1f
+
+        call char_display_update_cursor_absolute_position
+        lwu t0,CHAR_DISPLAY__state__cursor__absolute_y(a0)
         lwu t1,CHAR_DISPLAY__w(a0)
         mul t0,t0,t1
         lwu t1,CHAR_DISPLAY__state__cursor__x(a0)
         add t0,t0,t1
+
+        mv a1,t0
+        call char_display_mark_cell_dirty
+        mv t0,a1
 
         ld t1,CHAR_DISPLAY__attribute_buffer(a0)
         add t0,t0,t1
@@ -118,7 +152,84 @@ char_display_add_cursor:
         lbu t1,(t0)
         ori t1,t1,CURSOR_FLAG
         sb t1,(t0)
+
+1:
         
+        restore
+        ret
+
+
+char_display_insert_blank_lines:
+#[ci [ self, y, n ]
+        save an=3,sn=5
+
+        lwu t0,CHAR_DISPLAY__w(a0)
+        mul s1,a2,t0
+        mul t0,a1,t0
+        slli s2,t0,0x1
+        slli s3,t0,0x2
+
+        ld t0,CHAR_DISPLAY__glyph_buffer(a0)
+        add s2,s2,t0
+        ld t0,CHAR_DISPLAY__bg_buffer(a0)
+        add s4,s3,t0
+        ld t0,CHAR_DISPLAY__fg_buffer(a0)
+        add s3,s3,t0
+
+        ld s5,CHAR_DISPLAY__font(a0)
+        lhu s5,FONT__space(s5)
+
+        lwu t1,CHAR_DISPLAY__state__fg(a0)
+        lwu t2,CHAR_DISPLAY__state__bg(a0)
+
+        li t0,0x0
+        bge t0,s1,2f
+
+1:      sh s5,(s2)
+        addi s2,s2,0x2
+        sw t1,(s3)
+        addi s3,s3,0x4
+        sw t2,(s4)
+        addi s4,s4,0x4
+
+        addi t0,t0,0x1
+        blt t0,s1,1b
+
+2:
+
+        restore
+        ret
+
+
+char_display_insert_blank:
+#[ci [ self ]
+        save sn=2
+
+        lwu t0,CHAR_DISPLAY__state__cursor__absolute_y(a0)
+        lwu t1,CHAR_DISPLAY__w(a0)
+        mul t0,t0,t1
+        add s2,t0,t1
+        lwu t1,CHAR_DISPLAY__state__cursor__x(a0)
+        add s1,t0,t1
+
+        mv a1,s1
+        call char_display_mark_cell_dirty
+        
+        slli s1,s1,0x1
+        slli s2,s2,0x1
+        ld t1,CHAR_DISPLAY__glyph_buffer(a0)
+        add s1,s1,t1
+        add s2,s2,t1
+
+        ld t0,CHAR_DISPLAY__font(a0)
+        lhu t0,FONT__space(t0)        
+
+1:      lhu t1,(s1)
+        sh t0,(s1)
+        mv t0,t1
+        addi s1,s1,0x2
+        blt s1,s2,1b
+
         restore
         ret
 
@@ -127,11 +238,21 @@ char_display_write_utf8:
 #[ci [ self, utf8 ]
         save an=2,sn=3
 
-        lwu t0,CHAR_DISPLAY__state__cursor__y(a0)
+        call char_display_update_cursor_absolute_position
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bexti t0,t0,ANSI_MODE__insert
+        beqz t0,1f
+
+        call char_display_insert_blank
+
+1:      lwu t0,CHAR_DISPLAY__state__cursor__absolute_y(a0)
         lwu t1,CHAR_DISPLAY__w(a0)
         mul t0,t0,t1
         lwu t1,CHAR_DISPLAY__state__cursor__x(a0)
         add s1,t0,t1
+
+        mv a1,s1
+        call char_display_mark_cell_dirty
 
         lwu s2,CHAR_DISPLAY__state__fg(a0)
         lwu s3,CHAR_DISPLAY__state__bg(a0)
@@ -166,6 +287,7 @@ char_display_write_utf8:
         add s1,s1,t1
 
         ld a0,CHAR_DISPLAY__font(a0)
+        ld a1,_a1(sp)
         call font_get_glyph
         sh a0,(s1)
 
@@ -174,6 +296,30 @@ char_display_write_utf8:
         call char_display_move_cursor_right
 
         restore
+        ret
+
+char_display_mark_buffer_dirty:
+#[ci [ self ]
+        save
+
+        li a1,0xFF
+        lhu a2,CHAR_DISPLAY__sizeof_buffer_mask(a0)
+        ld a0,CHAR_DISPLAY__buffer_mask(a0)        
+
+1:      call memset
+
+        restore
+        ret
+
+char_display_update_cursor_absolute_position:
+#[ci [ self ]
+        lwu t0,CHAR_DISPLAY__state__cursor__y(a0)
+        lbu t1,CHAR_DISPLAY__state__scroll(a0)
+        sub t0,t0,t1
+        lwu t1,CHAR_DISPLAY__h(a0)
+        add t0,t0,t1
+        remu t0,t0,t1
+        sw t0,CHAR_DISPLAY__state__cursor__absolute_y(a0)
         ret
 
 char_display_move_cursor_right:
@@ -220,6 +366,82 @@ char_display_move_cursor_up:
         addi t1,t1,-1
         min t0,t0,t1
         sw t0,CHAR_DISPLAY__state__cursor__y(a0)
+        ret
+
+char_display_scroll_up:
+#[ci [ self, amount ]
+        save an=2
+
+        mv a2,a1
+        lbu a1,CHAR_DISPLAY__state__scroll(a0)
+        lw t0,CHAR_DISPLAY__h(a0)
+        sub a1,t0,a1
+        remu a1,a1,t0
+        call char_display_insert_blank_lines
+
+        ld a0,_a0(sp)
+        ld a1,_a1(sp)
+
+        lbu t0,CHAR_DISPLAY__state__scroll(a0)
+        lw t1,CHAR_DISPLAY__h(a0)
+        add t0,t0,t1
+        remu a1,a1,t1
+        sub a1,t0,a1
+        remu a1,a1,t1
+        sb a1,CHAR_DISPLAY__state__scroll(a0)
+
+        call char_display_mark_buffer_dirty
+
+        restore
+        ret
+
+char_display_scroll_down:
+#[ci [ self, amount ]
+        save an=2
+
+        mv a2,a1
+        lbu a1,CHAR_DISPLAY__state__scroll(a0)
+        lwu t0,CHAR_DISPLAY__h(a0)
+        add a1,a1,t0
+        sub a1,a1,a2
+        remu a1,a1,t0
+        call char_display_insert_blank_lines
+
+        ld a0,_a0(sp)
+        ld a1,_a1(sp)
+
+        lbu t0,CHAR_DISPLAY__state__scroll(a0)
+        add a1,t0,a1
+        lw t0,CHAR_DISPLAY__h(a0)
+        remu a1,a1,t0
+        sb a1,CHAR_DISPLAY__state__scroll(a0)
+
+        call char_display_mark_buffer_dirty
+
+        restore
+        ret
+
+char_display_move_cursor_down_or_scroll:
+#[ci [ self, amount ]
+        save an=2
+
+        lwu t0,CHAR_DISPLAY__state__cursor__y(a0)
+        add t2,t0,a1
+        lwu t1,CHAR_DISPLAY__h(a0)
+        blt t2,t1,1f
+
+        addi t1,t1,-1
+        sw t1,CHAR_DISPLAY__state__cursor__y(a0)
+        
+        sub t2,t1,t0
+        sub a1,a1,t2
+        call char_display_scroll_up
+        ld a1,_a1(sp)
+        ld a0,_a0(sp)
+
+1:      call char_display_move_cursor_down
+
+9:      restore
         ret
 
 
@@ -309,8 +531,18 @@ char_display_execute:
 
 char_display_handle_newline:
 #[ci [ self ]
+        save an=1
+
         li a1,1
-        tail char_display_move_cursor_down
+        call char_display_move_cursor_down_or_scroll
+        ld a0,_a0(sp)
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bexti t0,t0,ANSI_MODE__line_feed
+        beqz t0,1f
+
+        sw zero,CHAR_DISPLAY__state__cursor__x(a0)
+1:      restore
+        ret
 
 char_display_handle_carriage_return:
 #[ci [ self ]
@@ -418,6 +650,7 @@ char_display_parser_do_action:
         sb t2,PARSER__params_sep(t1)
 
 4:      addi t0,t0,0x1
+        sb t0,PARSER__params_idx(a0)
         j char_display_parser_do_action__none
 
 3:      lhu t0,PARSER__param_acc(a0)
@@ -425,7 +658,7 @@ char_display_parser_do_action:
         mul t0,t0,t1
 
         addi t1,a2,-'0'
-        or t0,t0,t1
+        add t0,t0,t1
 
         sh t0,PARSER__param_acc(a0)
 
@@ -525,12 +758,12 @@ char_display_parser_clear:
         ret
 
 char_display_esc_dispatch:
-        
+        ebreak
         ret
         
 char_display_csi_dispatch:
 #[ci [ self, ch, intermediates, params, params_sep ]
-        save an=5,sn=3
+        save an=5,sn=3,dn=2
 
         li t0,'m'
         bne a1,t0,1f
@@ -540,15 +773,22 @@ char_display_csi_dispatch:
         lbu s2,(CHAR_DISPLAY__parser+PARSER__params_idx)(a0)
         li s1,0x0
         addi s3,a0,(CHAR_DISPLAY__parser+PARSER__params)
+        sd s3,_d0(sp)
+        sd s1,_d1(sp)
 
 2:      bge s1,s2,2f
 
+        ld s3,_d0(sp)
         lhu a1,(s3)
         addi s3,s3,0x2
+        sd s3,_d0(sp)
 
+        addi a2,sp,_d0
         call char_display_set_attribute
 
+        ld s1,_d1(sp)
         addi s1,s1,0x1
+        sd s1,_d1(sp)
         j 2b
 
 2:      j 9f
@@ -556,8 +796,50 @@ char_display_csi_dispatch:
 1:      li t0,'H'
         bne a1,t0,1f
 
+        lbu t0,(CHAR_DISPLAY__parser+PARSER__params_idx)(a0)
+        bnez t0,2f
+
+        sw zero,CHAR_DISPLAY__state__cursor__x(a0)
+        sw zero,CHAR_DISPLAY__state__cursor__y(a0)
+        
+        j 9f
+
+2:      li t1,0x2
+        bne t0,t1,2f
+
+        lhu t0,(CHAR_DISPLAY__parser+PARSER__params+0x2)(a0)
+        addi t0,t0,-1
+        max t0,t0,zero
+        sw t0,CHAR_DISPLAY__state__cursor__y(a0)
+        j 3f
+        
+2:      li t1,0x1
+        bne t0,t1,2f
+        
+        sw zero,CHAR_DISPLAY__state__cursor__y(a0)
+3:      lhu t0,(CHAR_DISPLAY__parser+PARSER__params)(a0)
+        addi t0,t0,-1
+        max t0,t0,zero
+        sw t0,CHAR_DISPLAY__state__cursor__x(a0)
+
+        j 9f
+
+2:      ebreak
+        j 9f
+
 1:      li t0,'K'
         bne a1,t0,1f
+
+        lbu a1,(CHAR_DISPLAY__parser+PARSER__params_idx)(a0)
+        bnez a1,2f
+
+        call char_display_erase_from_cursor        
+        j 9f
+        
+2:      lhu a1,(CHAR_DISPLAY__parser+PARSER__params)(a0)
+        call char_display_erase_from_cursor        
+        j 9f
+
 
 1:      li t0,'A'
         bne a1,t0,1f
@@ -607,29 +889,251 @@ char_display_csi_dispatch:
 1:      li t0,'X'
         bne a1,t0,1f
 
+        call char_display_update_cursor_absolute_position
+
+        li a3,0x1
+        
+        lbu t0,(CHAR_DISPLAY__parser+PARSER__params_idx)(a0)
+        beqz t0,2f
+
+        lwu t0,(CHAR_DISPLAY__parser+PARSER__params)(a0)
+        max a3,a3,t0
+
+2:      lwu a1,CHAR_DISPLAY__w(a0)
+        lwu t0,CHAR_DISPLAY__state__cursor__x(a0)
+
+        lwu t1,CHAR_DISPLAY__state__cursor__absolute_y(a0)
+        mul a1,a1,t1
+        add a1,a1,t0
+
+        ld t0,CHAR_DISPLAY__font(a0)
+        lhu a2,FONT__space(t0)
+        call char_display_repeat_glyph
+
+        j 9f
+
 1:      li t0,'l'
         bne a1,t0,1f
+
+        lbu a2,(CHAR_DISPLAY__parser+PARSER__intermediates_idx)(a0)
+
+        lbu s2,(CHAR_DISPLAY__parser+PARSER__params_idx)(a0)
+        li s1,0x0
+        addi s3,a0,(CHAR_DISPLAY__parser+PARSER__params)
+
+2:      bge s1,s2,2f
+
+        lhu a1,(s3)
+        addi s3,s3,0x2
+
+        call char_display_reset_mode
+
+        addi s1,s1,0x1
+        j 2b
+
+2:      j 9f
+        
 
 1:      li t0,'h'
         bne a1,t0,1f
 
+        lbu a2,(CHAR_DISPLAY__parser+PARSER__intermediates_idx)(a0)
+
+        lbu s2,(CHAR_DISPLAY__parser+PARSER__params_idx)(a0)
+        li s1,0x0
+        addi s3,a0,(CHAR_DISPLAY__parser+PARSER__params)
+
+2:      bge s1,s2,2f
+
+        lhu a1,(s3)
+        addi s3,s3,0x2
+
+        call char_display_set_mode
+
+        addi s1,s1,0x1
+        j 2b
+
+2:      j 9f
+        
+
+
 1:      li t0,'r'
         bne a1,t0,1f
 
-1:      
+1:      li t0,'S'
+        bne a1,t0,1f
+
+        lbu t0,(CHAR_DISPLAY__parser+PARSER__params_idx)(a0)
+        bnez t0,2f
+
+        li a1,0x1
+        j 3f
+
+2:      lhu a1,(CHAR_DISPLAY__parser+PARSER__params)(a0)
+3:      call char_display_scroll_up
+        j 9f
+
+1:      li t0,'T'
+        bne a1,t0,1f
+
+        lbu t0,(CHAR_DISPLAY__parser+PARSER__params_idx)(a0)
+        bnez t0,2f
+
+        li a1,0x1
+        j 3f
+
+2:      lhu a1,(CHAR_DISPLAY__parser+PARSER__params)(a0)
+3:      call char_display_scroll_down
+        j 9f
+
+
+1:
 
 9:      restore
         ret
+
+
+char_display_set_mode:
+#[ci [ self, mode, type ]
+        save
+
+        bnez a2,2f        
+
+1:      li t0,2
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bseti t0,t0,ANSI_MODE__locked
+        sb t0,CHAR_DISPLAY__state__ansi_mode(a0)        
+
+        j 9f
+        
+1:      li t0,4
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bseti t0,t0,ANSI_MODE__insert
+        sb t0,CHAR_DISPLAY__state__ansi_mode(a0)        
+
+        j 9f
+        
+1:      li t0,12
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bseti t0,t0,ANSI_MODE__send
+        sb t0,CHAR_DISPLAY__state__ansi_mode(a0)        
+
+        j 9f
+        
+1:      li t0,20
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bseti t0,t0,ANSI_MODE__line_feed
+        sb t0,CHAR_DISPLAY__state__ansi_mode(a0)        
+
+        j 9f
+        
+1:      ebreak
+        j 9f
+
+2:      li t0,25
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__private_mode(a0)
+        bseti t0,t0,PRIVATE_MODE__text_cursor_enable
+        sb t0,CHAR_DISPLAY__state__private_mode(a0)        
+
+        j 9f
+
+1:      ebreak
+        j 9f
+
+9:      restore
+        ret
+
+char_display_reset_mode:
+#[ci [ self, mode, type]
+        save
+        
+        bnez a2,2f
+
+        li t0,2
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bclri t0,t0,ANSI_MODE__locked
+        sb t0,CHAR_DISPLAY__state__ansi_mode(a0)        
+
+        j 9f
+        
+1:      li t0,4
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bclri t0,t0,ANSI_MODE__insert
+        sb t0,CHAR_DISPLAY__state__ansi_mode(a0)        
+
+        j 9f
+        
+1:      li t0,12
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bclri t0,t0,ANSI_MODE__send
+        sb t0,CHAR_DISPLAY__state__ansi_mode(a0)        
+
+        j 9f
+        
+1:      li t0,20
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__ansi_mode(a0)
+        bclri t0,t0,ANSI_MODE__line_feed
+        sb t0,CHAR_DISPLAY__state__ansi_mode(a0)        
+
+        j 9f
+        
+1:      ebreak
+        j 9f
+
+2:      li t0,25
+        bne a1,t0,1f
+
+        lbu t0,CHAR_DISPLAY__state__private_mode(a0)
+        bclri t0,t0,PRIVATE_MODE__text_cursor_enable
+        sb t0,CHAR_DISPLAY__state__private_mode(a0)        
+
+        j 9f
+
+1:      ebreak
+        j 9f
+
+
+9:      restore
+        ret
+
 
 #[ri [############################]
 #[ri [#  TODO: MAKE VECTOR JUMP  #]
 #[ri [############################]
 
 char_display_set_attribute:
-#[ci [ self, attribute ]
+#[ci [ self, attribute; slice ]
         save
 
-        li t0,7
+1:      li t0,0
+        bne a1,t0,1f
+
+        sd zero,CHAR_DISPLAY__state__cursor__style(a0)
+        li t0,CHAR_DISPLAY_DEFAULT_FG
+        sw t0,CHAR_DISPLAY__state__fg(a0)
+        li t0,CHAR_DISPLAY_DEFAULT_BG
+        sw t0,CHAR_DISPLAY__state__bg(a0)
+        j 9f
+
+1:      li t0,7
         bne a1,t0,1f
 
         ld t0,CHAR_DISPLAY__state__cursor__style(a0)
@@ -670,9 +1174,59 @@ char_display_set_attribute:
         li t0,37
         bgt a1,t0,1f
 
-        
 
-        
+        addi t0,a1,-30
+        slli t0,t0,0x2
+        la t1,CHAR_DISPLAY_DEFAULT_COLOR_PALETTE
+        add t0,t0,t1
+
+        lwu t0,(t0)
+        sw t0,CHAR_DISPLAY__state__fg(a0)
+        j 9f
+
+1:      li t0,40
+        blt a1,t0,1f
+        li t0,47
+        bgt a1,t0,1f
+
+        addi t0,a1,-40
+        slli t0,t0,0x2
+        la t1,CHAR_DISPLAY_DEFAULT_COLOR_PALETTE
+        add t0,t0,t1
+
+        lwu t0,(t0)
+        sw t0,CHAR_DISPLAY__state__bg(a0)
+        j 9f
+
+1:      li t0,90
+        blt a1,t0,1f
+        li t0,97
+        bgt a1,t0,1f
+
+
+        addi t0,a1,-90
+        slli t0,t0,0x2
+        la t1,CHAR_DISPLAY_DEFAULT_BRIGHT_PALETTE
+        add t0,t0,t1
+
+        lwu t0,(t0)
+        sw t0,CHAR_DISPLAY__state__fg(a0)
+        j 9f
+
+1:      li t0,100
+        blt a1,t0,1f
+        li t0,107
+        bgt a1,t0,1f
+
+        addi t0,a1,-100
+        slli t0,t0,0x2
+        la t1,CHAR_DISPLAY_DEFAULT_BRIGHT_PALETTE
+        add t0,t0,t1
+
+        lwu t0,(t0)
+        sw t0,CHAR_DISPLAY__state__bg(a0)
+        j 9f
+
 
 1:      li t0,0x7
         bne a1,t0,1f
@@ -689,3 +1243,85 @@ char_display_set_attribute:
 9:      restore
         ret
 
+char_display_repeat_glyph:
+#[ci [ self, offset, glyph, n ]
+        save
+
+        slli a1,a1,0x1
+        ld t1,CHAR_DISPLAY__glyph_buffer(a0)
+        add t1,t1,a1
+
+        li t0,0x0
+
+1:      sh a2,(t1)
+        addi t1,t1,0x2
+        addi t0,t0,0x1
+        blt t0,a3,1b
+
+        restore
+        ret
+
+
+char_display_erase_from_cursor:
+#[ci [ self, option ]
+        save
+
+        call char_display_update_cursor_absolute_position
+
+        li t0,0x3
+        min a1,a1,t0
+        slli a1,a1,0x2
+
+        la t0,2f
+        add t0,t0,a1
+        jalr zero,t0,0x0
+        
+2:      j 1f
+        j 2f
+        j 3f
+        j 4f
+
+
+1:      lwu a1,CHAR_DISPLAY__w(a0)
+        lwu t0,CHAR_DISPLAY__state__cursor__x(a0)
+        sub a3,a1,t0
+
+        lwu t1,CHAR_DISPLAY__state__cursor__absolute_y(a0)
+        mul a1,a1,t1
+        add a1,a1,t0
+
+        ld t0,CHAR_DISPLAY__font(a0)
+        lhu a2,FONT__space(t0)
+        call char_display_repeat_glyph
+
+        j 9f
+
+
+2:      lwu a1,CHAR_DISPLAY__w(a0)
+        lwu a3,CHAR_DISPLAY__state__cursor__x(a0)
+
+        lwu t1,CHAR_DISPLAY__state__cursor__absolute_y(a0)
+        mul a1,a1,t1
+
+        ld t0,CHAR_DISPLAY__font(a0)
+        lhu a2,FONT__space(t0)
+        call char_display_repeat_glyph
+        j 9f
+        
+
+3:      lwu a3,CHAR_DISPLAY__w(a0)
+        lwu t1,CHAR_DISPLAY__state__cursor__absolute_y(a0)
+        mul a1,a3,t1
+        
+        ld t0,CHAR_DISPLAY__font(a0)
+        lhu a2,FONT__space(t0)
+        call char_display_repeat_glyph
+        j 9f
+
+
+4:      ebreak
+        j 9f
+
+
+9:      restore
+        ret
