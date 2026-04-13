@@ -15,4 +15,4 @@ test__test_string_3:
 .string "\x1b[0;31mW"
 
 test__test_string_4: 
-.string "\x1b[H"
+.string "\x1b[1;1H"

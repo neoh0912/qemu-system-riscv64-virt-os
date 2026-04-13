@@ -180,6 +180,7 @@ _bg = _args + 0x1E
 1:      lbu s3,(s2)
         sb zero,(s2)
         addi s2,s2,0x1
+        beqz s3,8f
 3:      andi t0,s3,0x1
         srli s3,s3,0x1
         beqz t0,2f
@@ -217,6 +218,15 @@ _bg = _args + 0x1E
         bge s1,s10,1f
         andi t0,s1,0x7
         bnez t0,3b
+        j 1b
+
+8:      addi s1,s1,1*8
+        addi s5,s5,0x2*8
+        addi s6,s6,0x4*8
+        addi s7,s7,0x4*8
+        addi s8,s8,0x1*8
+        addi s4,s4,0x1*8
+        bge s1,s10,1f
         j 1b
 
 

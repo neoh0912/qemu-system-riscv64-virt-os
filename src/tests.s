@@ -14,7 +14,7 @@ test_font:
 
 
 test_char_display:
-        save sn=8
+        save sn=9
 
         la a0,VGA_FONT_DATA
         call font_load
@@ -33,6 +33,8 @@ test_char_display:
         li s4,50
         li s6,30
         li s8,80
+
+        li s9,0x0
         
 1:      li s5,0x0
 
@@ -41,6 +43,7 @@ test_char_display:
 3:      mv a0,s1
         la a1,test__test_string
         call char_display_write
+        addi s9,s9,1
 
         addi s7,s7,0x1
         blt s7,s8,3b
@@ -63,6 +66,7 @@ test_char_display:
 3:      mv a0,s1
         la a1,test__test_string_3
         call char_display_write
+        addi s9,s9,1
 
         addi s7,s7,0x1
         blt s7,s8,3b
@@ -74,10 +78,19 @@ test_char_display:
         addi s5,s5,0x1
         blt s5,s6,2b
 
+        mv a0,s1
+        la a1,test__test_string_4
+        call char_display_write  
+
         addi s3,s3,0x1
 
 
+
+
 blt s3,s4,1b
+
+        mv a0,s9
+        call print_int_dec
 
         restore
         ret
