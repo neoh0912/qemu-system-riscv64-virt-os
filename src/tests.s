@@ -143,11 +143,11 @@ test_ext2:
     li a0,0x0
     call ext2_mount
     mv s1,a0
-    call fs_mount_get_root_inode
-    mv a1,a0
-    mv a0,s1
-    call ext2_get_inode
-    call print_int_hex
+
+
+    li a0,0x0
+    la a1,test__path
+    call ext2_open
     
     ebreak
     

@@ -11,6 +11,7 @@
 mtime = 0x0200BFF8
 mtime_frec = 10*1000*1000
 mtime_64hz = mtime_frec >> 6
+MAX_MOUNTED_FS = 16
 .include "const/errors.s"
 
 #[gi    [macros]
@@ -81,10 +82,14 @@ HEX: .ascii "0123456789ABCDEF"
 
 
 .include "kernel/filesystem/mount.s"
+.include "kernel/filesystem/path.s"
 
 .include "kernel/filesystem/ext2/mount.s"
 .include "kernel/filesystem/ext2/inode.s"
 .include "kernel/filesystem/ext2/read.s"
+.include "kernel/filesystem/ext2/file.s"
+.include "kernel/filesystem/ext2/super.s"
+.include "kernel/filesystem/ext2/dir.s"
 
 .include "kernel/char_display/main.s"
 .include "kernel/char_display/font.s"

@@ -6,7 +6,7 @@ fs_mount_alloc:
 
         la t0,fs_mounted_filesystems
         li t1,0x0
-        li t2,16
+        li t2,MAX_MOUNTED_FS
         
 1:      lwu t3,(t0)
         beqz t3,1f
@@ -21,6 +21,19 @@ fs_mount_alloc:
         mv a1,t1
         restore
         ret
+
+fs_get_mount:
+#[ci [ fs ]
+        la t0,fs_mounted_filesystems
+        li t1,sizeof_fs_mount
+        mul t1,t1,a0
+        add a0,t0,t1
+        ret
+
+fs_mount_is_valid:
+#[ci [ mount ]
+        lwu a0,fs_mount__valid_flag(a0)
+        ret        
 
 fs_mount_get_root_inode:
 #[ci [ mount ]

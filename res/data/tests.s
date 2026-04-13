@@ -16,3 +16,5 @@ test__test_string_3:
 
 test__test_string_4: 
 .string "\x1b[1;1H"
+
+test__path: .string "/helloworld"

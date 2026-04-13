@@ -1,8 +1,8 @@
 .include "const/fs/mount.s"
 .include "const/ext2.s"
-ext2_get_inode:
-#[ci [ mount, index ]
-        save an=2,sn=3,dn=1
+ext2_read_inode:
+#[ci [ mount, ino, buffer ]
+        save an=3,sn=3,dn=1
 buf = _d0
 
         ld a0,fs_mount__block_size(a0)
@@ -38,15 +38,8 @@ buf = _d0
         ld a0,_a0(sp)
         call ext2_read_block
 
-        ld a0,_a0(sp)
-        lwu s1,fs_mount__superblock_data(a0)
-        lhu a0,s_inode_size(s1)
-        mv s3,a0
-        call malloc
-        bnez a0,1f
-        ebreak
-
-1:      ld a1,buf(sp)
+        ld a0,_a2(sp)
+        ld a1,buf(sp)
         add a1,a1,s2
         mv a2,s3
         mv s2,a0
@@ -57,4 +50,17 @@ buf = _d0
         mv a0,s2
 
         restore
+        ret
+
+ext2_is_inode_directory:
+#[ci [ inode ]
+        lhu t0,i_mode(a0)
+        li t1,0xF000
+        and t0,t0,t1
+        li t1,0x4000
+        bne t0,t1,1f
+        li a0,0x1
+        ret
+1:
+        li a0,0x0
         ret
