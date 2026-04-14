@@ -147,6 +147,7 @@ test_ext2:
 
     li a0,0x0
     la a1,test__path
+    li a2,0x0
     call ext2_open
     
     ebreak

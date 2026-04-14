@@ -39,6 +39,7 @@ HEX: .ascii "0123456789ABCDEF"
 .include "bss/uart.s"
 .include "bss/device_manager.s"
 .include "bss/filesystem.s"
+.include "bss/ext2.s"
         .align 16
 .include "bss/stack.s"
         .align 16
@@ -83,6 +84,7 @@ HEX: .ascii "0123456789ABCDEF"
 
 .include "kernel/filesystem/mount.s"
 .include "kernel/filesystem/path.s"
+.include "kernel/filesystem/file_handle.s"
 
 .include "kernel/filesystem/ext2/mount.s"
 .include "kernel/filesystem/ext2/inode.s"

@@ -64,3 +64,8 @@ ext2_is_inode_directory:
 1:
         li a0,0x0
         ret
+
+ext2_get_size_of_inode:
+#[ci [ inode ]
+        lwu a0,i_size(a0)
+        ret

@@ -28,9 +28,9 @@ _start:
 
     call device_manager_print_devices
 
-#    call test_ext2
+    call test_ext2
 
-    call test_char_display
+#    call test_char_display
 
 #    call test_font
 

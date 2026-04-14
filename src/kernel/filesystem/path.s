@@ -7,7 +7,7 @@ fs_path_next:
 
 1:      lbu t2,(t0)
         li t3,'/'
-        bne t2,t3,2f
+        bne t2,t3,1f
         addi t0,t0,1
         j 1b
         

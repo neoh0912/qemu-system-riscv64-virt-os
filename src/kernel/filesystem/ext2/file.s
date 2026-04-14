@@ -1,4 +1,5 @@
 .include "const/fs/mount.s"
+.include "const/fs/file_handle.s"
 ext2_open:
 #[ci [ fs, path, flags ]
         save an=3,sn=6
@@ -79,33 +80,58 @@ ext2_open_walk:
         j ext2_open_walk
 
 ext2_open_done:
+        mv a1,s5
+        mv a0,s1
+        mv a2,s2
+        call ext2_read_inode
+        mv a0,s2
+        call ext2_get_size_of_inode
+        mv a2,a0
 
+        ld a0,_a0(sp)
+        mv a1,s5
+        
+        ld a3,_a2(sp)
+        la a4,ext2_operations
+        call fs_create_file_handle
+
+        sd a0,_a0(sp)
+        
         j 9f
 
 
 ext2_open_no_entry:
         li a0,-ENOENT
+        sd a0,_a0(sp)
         j 9f
         
 ext2_open_not_a_directory:
         li a0,-3
+        sd a0,_a0(sp)
         j 9f
 
 ext2_open_invalid_fs: 
         li a0,-1
+        sd a0,_a0(sp)
         j 9f
 
 ext2_open_invalid_path:
         li a0,-2
+        sd a0,_a0(sp)
         j 9f
 
 9:      beqz s2,1f
         mv a0,s2
         call free
         
-1:      beqz s6,1f
-        mv a0,s6
+1:      beqz s3,1f
+        mv a0,s3
         call free
               
-1:      restore
+1:      ld a0,_a0(sp)
+
+        restore
         ret
+
+ext2_read:
+#[ci
