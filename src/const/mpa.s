@@ -1,0 +1,7 @@
+sizeof_MPA = 0x18
+
+MPA_START_SIZE = 0x8
+
+MPA__data = 0x0
+MPA__size = 0x8
+MPA__count = 0x10
