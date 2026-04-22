@@ -38,7 +38,7 @@ _time = _d10
     mv s11,a0
     mv a1,a0
     ld a0,_display(sp)
-    call display_write_buffer
+    call display_write_frame_buffer
     mv a0,s11
     call free
 

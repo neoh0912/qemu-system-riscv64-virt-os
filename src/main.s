@@ -74,6 +74,8 @@ HEX: .ascii "0123456789ABCDEF"
 .include "drivers/virtio/input.s"
 
         .section .text.kernel
+.include "kernel/main.s"
+
 .include "kernel/device_manager/open.s"
 .include "kernel/device_manager/main.s"
 .include "kernel/device_manager/debug.s"

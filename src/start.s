@@ -24,15 +24,13 @@ _start:
     la a0,pci_scan
     call device_manager_register_device_scanner
 
-    call device_manager_scan
-
-    call device_manager_print_devices
-
-    call test_ext2
+#    call test_ext2
 
 #    call test_char_display
 
 #    call test_font
+
+     call kernel_start
 
 1:
     wfi
